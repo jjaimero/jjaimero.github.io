@@ -1,0 +1,100 @@
+/* Estilo compartido por todas las páginas del sitio */
+:root {
+  --texto: #1f2328;
+  --suave: #57606a;
+  --enlace: #0b5cad;
+  --fondo: #fdfdfb;
+  --borde: #d8dee4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --texto: #e6edf3;
+    --suave: #9da7b1;
+    --enlace: #6cb6ff;
+    --fondo: #14171b;
+    --borde: #30363d;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.65;
+}
+
+nav {
+  display: flex;
+  gap: 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid var(--borde);
+  font-family: system-ui, sans-serif;
+  font-size: .95rem;
+}
+nav a { color: var(--suave); text-decoration: none; }
+nav a:hover { color: var(--enlace); }
+nav a.activo { color: var(--texto); font-weight: 600; }
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+h1 { margin: 0; font-size: 2rem; }
+h2 { margin-top: 2.2rem; font-size: 1.25rem; border-bottom: 1px solid var(--borde); padding-bottom: .3rem; }
+.sub { color: var(--suave); margin-top: .3rem; }
+
+a { color: var(--enlace); }
+li { margin: .4rem 0; }
+
+/* Línea pequeña sobre el título (nombre del diplomado) */
+.kicker {
+  margin: 0 0 .4rem;
+  color: var(--suave);
+  font-family: system-ui, sans-serif;
+  font-size: .85rem;
+  letter-spacing: .02em;
+}
+
+/* Tablas (cronograma) */
+.tabla { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+th { font-family: system-ui, sans-serif; font-size: .85rem; color: var(--suave); }
+td:first-child, th:first-child { width: 4rem; }
+
+/* Etiqueta de tipo de archivo */
+.tipo {
+  font-family: system-ui, sans-serif;
+  font-size: .7rem;
+  color: var(--suave);
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 0 .3rem;
+  margin-left: .3rem;
+}
+
+/* Botón */
+.boton {
+  display: inline-block;
+  padding: .55rem 1rem;
+  border: 1px solid var(--enlace);
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: system-ui, sans-serif;
+  font-size: .95rem;
+}
+.boton:hover { background: var(--enlace); color: var(--fondo); }
+
+footer {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  color: var(--suave);
+  font-size: .85rem;
+  font-family: system-ui, sans-serif;
+}
