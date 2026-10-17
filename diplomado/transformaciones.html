@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transformaciones de funciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --papel: #FAFBFC;
+  --panel: #FFFFFF;
+  --tinta: #17212B;
+  --tinta-suave: #55626E;
+  --cuadricula: #E3E8EE;
+  --eje: #6B7782;
+  --azul: #1F5A8A;
+  --verde: #2E7D32;
+  --naranja: #B85600;
+  --morado: #5B3A8C;
+  --rojo: #B42318;
+  --teal: #0F6E6E;
+  --borde: #D5DCE3;
+  --boton: #F1F4F7;
+  --boton-hover: #E4E9EF;
+  --sobre-color: #FFFFFF;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #161C22; --panel: #1D252D; --tinta: #E7EDF3; --tinta-suave: #A3B0BC;
+    --cuadricula: #27313B; --eje: #8A97A3; --azul: #7DB3E8; --verde: #7CCB80;
+    --naranja: #F2A65A; --morado: #BBA3E3; --rojo: #F08A80; --teal: #5FC4BC;
+    --borde: #33404C; --boton: #25303A; --boton-hover: #2E3A45; --sobre-color: #10161B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #161C22; --panel: #1D252D; --tinta: #E7EDF3; --tinta-suave: #A3B0BC;
+  --cuadricula: #27313B; --eje: #8A97A3; --azul: #7DB3E8; --verde: #7CCB80;
+  --naranja: #F2A65A; --morado: #BBA3E3; --rojo: #F08A80; --teal: #5FC4BC;
+  --borde: #33404C; --boton: #25303A; --boton-hover: #2E3A45; --sobre-color: #10161B;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.45;
+}
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 22px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 14px 20px 18px;
+}
+header { grid-column: 1 / -1; margin-bottom: 10px; }
+h1 { font-size: 1.65rem; line-height: 1.2; margin: 0; font-weight: 700; }
+.guia { color: var(--tinta-suave); margin: 4px 0 0; max-width: 75ch; }
+.lienzo {
+  position: relative;
+  min-height: 300px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--papel);
+}
+.lienzo canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.panel { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
+.grupo h2 { font-size: 0.95rem; margin: 0 0 6px; color: var(--tinta-suave); font-weight: 700; }
+.fila { display: flex; flex-wrap: wrap; gap: 6px; }
+
+button {
+  font: inherit;
+  font-size: 0.98rem;
+  min-height: 42px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--boton);
+  color: var(--tinta);
+  cursor: pointer;
+}
+button:hover { background: var(--boton-hover); }
+button[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: var(--sobre-color); }
+button.verde[aria-pressed="true"] { background: var(--verde); border-color: var(--verde); }
+button.naranja[aria-pressed="true"] { background: var(--naranja); border-color: var(--naranja); }
+button.morado[aria-pressed="true"] { background: var(--morado); border-color: var(--morado); }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+button.ancho { width: 100%; }
+
+input[type="range"] { width: 100%; accent-color: var(--azul); }
+.control { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 10px; }
+.control label { font-weight: 700; }
+.control output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--azul); }
+.control small { grid-column: 1 / -1; color: var(--tinta-suave); }
+.control input { grid-column: 1 / -1; }
+
+.leyenda {
+  border-left: 4px solid var(--azul);
+  padding: 6px 10px;
+  background: var(--panel);
+  border-radius: 0 8px 8px 0;
+  min-height: 3.2em;
+}
+.respuesta {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+}
+.respuesta[hidden] { display: none; }
+.formula { font-size: 1.5rem; font-weight: 700; color: var(--azul); line-height: 1.3; }
+.nota { color: var(--tinta-suave); font-size: 0.92rem; }
+sup { font-size: 0.7em; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  .lienzo { height: 60vh; min-height: 320px; margin-bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+
+.general { color: var(--tinta-suave); font-size: 0.95rem; margin: 0 0 2px; }
+.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pasos li { padding: 4px 8px; border-radius: 6px; border-left: 4px solid var(--borde); }
+.pasos li.activo { border-left-color: var(--teal); background: var(--panel); font-weight: 700; }
+.pasos li.vacio { color: var(--tinta-suave); border-left-color: transparent; }
+.control output { min-width: 3ch; text-align: right; }
+.pista { font-weight: 400; color: var(--tinta-suave); font-size: 0.88rem; margin-left: 4px; }
+#estadoReto { font-weight: 700; }
+#estadoReto.bien { color: var(--verde); }
+#estadoReto.mal { color: var(--rojo); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Transformaciones de funciones</h1>
+    <p class="guia">Antes de mover un control, predice qué le pasará a la gráfica. La curva punteada es la función original.</p>
+  </header>
+
+  <div class="lienzo"><canvas id="lienzo" role="img" aria-label="Gráfica de la función original y de la transformada"></canvas></div>
+
+  <aside class="panel">
+    <section class="grupo">
+      <h2>Función original</h2>
+      <div class="fila" id="bases"></div>
+    </section>
+
+    <section class="grupo">
+      <p class="general">y = a · f(b(x − h)) + k</p>
+      <div class="formula" id="formula">y = x²</div>
+    </section>
+
+    <section class="grupo" style="display:grid;gap:10px">
+      <div class="control">
+        <label for="a">a <span class="pista">vertical: estira, comprime o refleja</span></label><output id="oa">1</output>
+        <input id="a" type="range" min="-3" max="3" step="0.25" value="1">
+      </div>
+      <div class="control">
+        <label for="b">b <span class="pista">horizontal: comprime, estira o refleja</span></label><output id="ob">1</output>
+        <input id="b" type="range" min="-3" max="3" step="0.25" value="1">
+      </div>
+      <div class="control">
+        <label for="h">h <span class="pista">derecha si h &gt; 0, izquierda si h &lt; 0</span></label><output id="oh">0</output>
+        <input id="h" type="range" min="-6" max="6" step="0.5" value="0">
+      </div>
+      <div class="control">
+        <label for="k">k <span class="pista">sube si k &gt; 0, baja si k &lt; 0</span></label><output id="ok">0</output>
+        <input id="k" type="range" min="-5" max="5" step="0.5" value="0">
+      </div>
+    </section>
+
+    <section class="grupo">
+      <h2>Qué le pasó a la gráfica</h2>
+      <ol class="pasos" id="pasos"></ol>
+    </section>
+
+    <section class="grupo">
+      <div class="fila">
+        <button id="btnPasos">Ver paso a paso</button>
+        <button id="btnReset">Volver a la original</button>
+        <button id="btnOriginal" aria-pressed="true">Mostrar original</button>
+      </div>
+    </section>
+
+    <section class="grupo">
+      <h2>Reto</h2>
+      <p class="nota" style="margin:0 0 6px">Aparece una curva naranja. ¿Qué valores de a, b, h y k la producen?</p>
+      <div class="fila">
+        <button id="btnReto" class="naranja" aria-pressed="false">Nuevo reto</button>
+        <button id="btnComprobar" disabled>Comprobar</button>
+        <button id="btnSolucion" disabled>Ver solución</button>
+      </div>
+      <p id="estadoReto" aria-live="polite"></p>
+    </section>
+  </aside>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+//  Plano cartesiano sobre canvas (compartido por las tres animaciones)
+// ---------------------------------------------------------------------
+const color = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FUENTE = '"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif';
+const fmt = (v, d = 2) => {
+  if (!isFinite(v)) return v > 0 ? '∞' : '−∞';
+  let s = Number(v.toFixed(d)).toString();
+  return s.replace('-', '−');
+};
+
+class Plano {
+  constructor(canvas, dibujar) {
+    this.c = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.dibujar = dibujar;
+    this.v = { xmin: -5, xmax: 5, ymin: -5, ymax: 5 };
+    this.igual = null;
+    this.w = 1; this.h = 1;
+    new ResizeObserver(() => { this.medir(); this.dibujar(); }).observe(canvas);
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => this.dibujar());
+    if (document.fonts) document.fonts.ready.then(() => this.dibujar());
+  }
+  medir() {
+    const r = this.c.getBoundingClientRect();
+    const d = window.devicePixelRatio || 1;
+    this.w = Math.max(1, r.width); this.h = Math.max(1, r.height);
+    this.c.width = Math.round(this.w * d); this.c.height = Math.round(this.h * d);
+    this.ctx.setTransform(d, 0, 0, d, 0, 0);
+    if (this.igual) this.vistaIgual(...this.igual);
+  }
+  // Misma escala en ambos ejes: se fija el rango de x y el centro en y
+  vistaIgual(xmin, xmax, ycentro) {
+    this.igual = [xmin, xmax, ycentro];
+    const alto = (xmax - xmin) * this.h / this.w;
+    this.v = { xmin, xmax, ymin: ycentro - alto / 2, ymax: ycentro + alto / 2 };
+  }
+  vista(xmin, xmax, ymin, ymax) { this.igual = null; this.v = { xmin, xmax, ymin, ymax }; }
+  X(x) { return (x - this.v.xmin) / (this.v.xmax - this.v.xmin) * this.w; }
+  Y(y) { return this.h - (y - this.v.ymin) / (this.v.ymax - this.v.ymin) * this.h; }
+  invX(px) { return this.v.xmin + px / this.w * (this.v.xmax - this.v.xmin); }
+  get alto() { return this.v.ymax - this.v.ymin; }
+  get ancho() { return this.v.xmax - this.v.xmin; }
+
+  static pasoBonito(unidadesPorPixel, minPx) {
+    const bruto = unidadesPorPixel * minPx;
+    const p = Math.pow(10, Math.floor(Math.log10(bruto)));
+    for (const m of [1, 2, 5, 10]) if (m * p >= bruto) return m * p;
+    return 10 * p;
+  }
+
+  // Fondo de papel cuadriculado con ejes. op: {ejesEnBorde, fmtX, fmtY, etiquetaX, etiquetaY, pasoX, pasoY}
+  fondo(op = {}) {
+    const ctx = this.ctx, v = this.v;
+    ctx.fillStyle = color('--papel');
+    ctx.fillRect(0, 0, this.w, this.h);
+    const px = op.pasoX || Plano.pasoBonito(this.ancho / this.w, 58);
+    const py = op.pasoY || (this.igual ? px : Plano.pasoBonito(this.alto / this.h, 44));
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = color('--cuadricula');
+    ctx.beginPath();
+    for (let x = Math.ceil(v.xmin / px) * px; x <= v.xmax; x += px) {
+      const X = Math.round(this.X(x)) + 0.5; ctx.moveTo(X, 0); ctx.lineTo(X, this.h);
+    }
+    for (let y = Math.ceil(v.ymin / py) * py; y <= v.ymax; y += py) {
+      const Y = Math.round(this.Y(y)) + 0.5; ctx.moveTo(0, Y); ctx.lineTo(this.w, Y);
+    }
+    ctx.stroke();
+
+    // posicion de los ejes
+    const ejeY0 = op.ejeXPixel ?? (op.ejesEnBorde ? this.h - 1 : Math.min(Math.max(this.Y(0), 1), this.h - 1));
+    const ejeX0 = op.ejesEnBorde ? 1 : Math.min(Math.max(this.X(0), 1), this.w - 1);
+    this.ejeY0 = ejeY0; this.ejeX0 = ejeX0;
+    ctx.strokeStyle = color('--eje');
+    ctx.fillStyle = color('--eje');
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(0, ejeY0); ctx.lineTo(this.w - 2, ejeY0);
+    ctx.moveTo(ejeX0, this.h); ctx.lineTo(ejeX0, 2);
+    ctx.stroke();
+    // flechas
+    ctx.beginPath();
+    ctx.moveTo(this.w - 1, ejeY0); ctx.lineTo(this.w - 11, ejeY0 - 5); ctx.lineTo(this.w - 11, ejeY0 + 5);
+    ctx.moveTo(ejeX0, 1); ctx.lineTo(ejeX0 - 5, 11); ctx.lineTo(ejeX0 + 5, 11);
+    ctx.fill();
+
+    // numeros
+    ctx.font = `13px ${FUENTE}`;
+    ctx.fillStyle = color('--tinta-suave');
+    const fx = op.fmtX || ((x) => fmt(x, 3));
+    const fy = op.fmtY || ((y) => fmt(y, 3));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(v.xmin / px) * px; x <= v.xmax - px * 0.3; x += px) {
+      if (Math.abs(x) < px / 2 && !op.ejesEnBorde) continue;
+      const X = this.X(x);
+      if (X < 12) continue;
+      const yy = ejeY0 + 5 > this.h - 18 ? ejeY0 - 20 : ejeY0 + 5;
+      ctx.fillText(fx(Math.round(x / px) * px), X, yy);
+    }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(v.ymin / py) * py; y <= v.ymax - py * 0.3; y += py) {
+      if (Math.abs(y) < py / 2 && !op.ejesEnBorde) continue;
+      const Y = this.Y(y);
+      if (Y > this.h - 10 || Y < 10 || (op.ejeXPixel && Y > ejeY0 - 6)) continue;
+      const xx = ejeX0 - 6 < 30 ? ejeX0 + 6 : ejeX0 - 6;
+      ctx.textAlign = ejeX0 - 6 < 30 ? 'left' : 'right';
+      ctx.fillText(fy(Math.round(y / py) * py), xx, Y);
+    }
+    // nombres de los ejes
+    ctx.font = `italic 15px ${FUENTE}`;
+    ctx.fillStyle = color('--tinta');
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(op.etiquetaX || 'x', this.w - 6, ejeY0 - 8);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(op.etiquetaY || 'y', ejeX0 + 10, 4);
+  }
+
+  // Curva y = f(x). op: {color, ancho, guiones, x0, x1, alfa}
+  curva(f, op = {}) {
+    const ctx = this.ctx;
+    const a = Math.max(op.x0 ?? this.v.xmin, this.v.xmin);
+    const b = Math.min(op.x1 ?? this.v.xmax, this.v.xmax);
+    if (b <= a) return;
+    const n = Math.ceil(this.w * 1.5);
+    const alto = this.alto, centro = (this.v.ymin + this.v.ymax) / 2;
+    ctx.save();
+    ctx.strokeStyle = op.color || color('--azul');
+    ctx.lineWidth = op.ancho || 3;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.globalAlpha = op.alfa ?? 1;
+    ctx.setLineDash(op.guiones || []);
+    ctx.beginPath();
+    let abierto = false, yprev = null;
+    for (let i = 0; i <= n; i++) {
+      const x = a + (b - a) * i / n;
+      const y = f(x);
+      if (!isFinite(y) || Math.abs(y - centro) > alto * 6) { abierto = false; yprev = null; continue; }
+      if (abierto && yprev !== null && Math.abs(y - yprev) > alto * 0.9) abierto = false;
+      const X = this.X(x), Y = this.Y(y);
+      if (!abierto) { ctx.moveTo(X, Y); abierto = true; } else ctx.lineTo(X, Y);
+      yprev = y;
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  punto(x, y, op = {}) {
+    const ctx = this.ctx, r = op.radio || 6;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(this.X(x), this.Y(y), r, 0, 2 * Math.PI);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = op.color || color('--azul');
+    ctx.fillStyle = op.abierto ? color('--papel') : (op.color || color('--azul'));
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  linea(x1, y1, x2, y2, op = {}) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.strokeStyle = op.color || color('--eje');
+    ctx.lineWidth = op.ancho || 1.5;
+    ctx.globalAlpha = op.alfa ?? 1;
+    ctx.setLineDash(op.guiones || []);
+    ctx.beginPath(); ctx.moveTo(this.X(x1), this.Y(y1)); ctx.lineTo(this.X(x2), this.Y(y2)); ctx.stroke();
+    ctx.restore();
+  }
+
+  texto(t, x, y, op = {}) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.font = `${op.negrita ? '700 ' : ''}${op.tam || 15}px ${FUENTE}`;
+    ctx.fillStyle = op.color || color('--tinta');
+    ctx.textAlign = op.alinear || 'left';
+    ctx.textBaseline = op.base || 'middle';
+    const X = op.pixeles ? x : this.X(x), Y = op.pixeles ? y : this.Y(y);
+    if (op.fondo) {
+      const m = ctx.measureText(t), pad = 4;
+      let x0 = X - (ctx.textAlign === 'center' ? m.width / 2 : ctx.textAlign === 'right' ? m.width : 0);
+      ctx.fillStyle = color('--papel'); ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - pad, Y - (op.tam || 15) * 0.75, m.width + 2 * pad, (op.tam || 15) * 1.5);
+      ctx.globalAlpha = 1; ctx.fillStyle = op.color || color('--tinta');
+    }
+    ctx.fillText(t, X, Y);
+    ctx.restore();
+  }
+}
+
+// Animacion con requestAnimationFrame; respeta "reducir movimiento" acortando la duracion
+const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function animar(duracion, cadaPaso, alTerminar) {
+  const dur = reducido ? Math.min(duracion, 250) : duracion;
+  let inicio = null, cancelado = false;
+  function paso(t) {
+    if (cancelado) return;
+    if (inicio === null) inicio = t;
+    const p = Math.min(1, (t - inicio) / dur);
+    cadaPaso(p);
+    if (p < 1) requestAnimationFrame(paso); else if (alTerminar) alTerminar();
+  }
+  requestAnimationFrame(paso);
+  return () => { cancelado = true; };
+}
+const suave = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+
+
+// ---------------- funciones base ----------------
+const par = (u) => u === 'x' ? 'x' : `(${u})`;
+const BASES = [
+  { et: 'x²', f: x => x * x, clave: [0, 0], cuerpo: u => `${par(u)}<sup>2</sup>` },
+  { et: '|x|', f: Math.abs, clave: [0, 0], cuerpo: u => `|${u}|` },
+  { et: '√x', f: x => x >= 0 ? Math.sqrt(x) : NaN, clave: [0, 0], cuerpo: u => u === 'x' ? '√x' : `√(${u})` },
+  { et: 'x³', f: x => x * x * x, clave: [0, 0], cuerpo: u => `${par(u)}<sup>3</sup>` },
+  { et: '1/x', f: x => 1 / x, clave: [1, 1], asV: [0], asH: [0], cociente: true },
+  { et: 'eˣ', f: Math.exp, clave: [0, 1], asH: [0], cuerpo: u => `e<sup>${u}</sup>` },
+  { et: 'ln x', f: x => x > 0 ? Math.log(x) : NaN, clave: [1, 0], asV: [0], cuerpo: u => u === 'x' ? 'ln x' : `ln(${u})` },
+];
+
+const $ = (id) => document.getElementById(id);
+let base = BASES[0];
+const P = { a: 1, b: 1, h: 0, k: 0 };
+let reto = null;           // parametros del reto
+let pasoActivo = -1;       // paso resaltado durante la animacion
+let cancelar = null;
+let verOriginal = true;
+
+const plano = new Plano($('lienzo'), dibujar);
+
+const num = (v) => fmt(v, 2);
+function interior(b, h) {
+  const xs = h === 0 ? 'x' : (h > 0 ? `x − ${num(h)}` : `x + ${num(-h)}`);
+  if (b === 1) return xs;
+  if (b === -1) return h === 0 ? '−x' : `−(${xs})`;
+  return h === 0 ? `${num(b)}x` : `${num(b)}(${xs})`;
+}
+function formula(p, B = base) {
+  const u = interior(p.b, p.h);
+  let s;
+  if (B.cociente) {
+    s = `${p.a === 1 ? '1' : num(p.a)}/${par(u)}`;
+  } else {
+    if (p.a === 0) s = '0';
+    else s = (p.a === 1 ? '' : p.a === -1 ? '−' : num(p.a)) + B.cuerpo(u);
+  }
+  if (p.k > 0) s += ` + ${num(p.k)}`;
+  if (p.k < 0) s += ` − ${num(-p.k)}`;
+  return 'y = ' + s;
+}
+const g = (p, B = base) => (x) => p.a * B.f(p.b * (x - p.h)) + p.k;
+
+function descripcion(p) {
+  const d = [];
+  const ab = Math.abs(p.b);
+  if (ab !== 1) d.push(ab > 1 ? `Se comprime en horizontal: el ancho se multiplica por 1/${num(ab)}.`
+                             : `Se estira en horizontal: el ancho se multiplica por ${num(1 / ab)}.`);
+  if (p.b < 0) d.push('Se refleja en el eje y.');
+  if (p.h !== 0) d.push(p.h > 0 ? `Se mueve ${num(p.h)} a la derecha.` : `Se mueve ${num(-p.h)} a la izquierda.`);
+  const aa = Math.abs(p.a);
+  if (aa !== 1 && aa !== 0) d.push(aa > 1 ? `Se estira en vertical: la altura se multiplica por ${num(aa)}.`
+                                          : `Se comprime en vertical: la altura se multiplica por ${num(aa)}.`);
+  if (p.a === 0) d.push('Con a = 0 la gráfica se aplasta en una recta horizontal.');
+  if (p.a < 0) d.push('Se refleja en el eje x.');
+  if (p.k !== 0) d.push(p.k > 0 ? `Sube ${num(p.k)}.` : `Baja ${num(-p.k)}.`);
+  return d;
+}
+
+// ---------------- dibujo ----------------
+function dibujar() {
+  plano.vistaIgual(-8, 8, 0);
+  plano.fondo({ pasoX: plano.w > 560 ? 1 : 2 });
+  const azul = color('--azul');
+
+  // asintotas de la transformada
+  if (P.b !== 0) {
+    for (const x0 of base.asV || []) {
+      const xa = x0 / P.b + P.h;
+      plano.linea(xa, plano.v.ymin, xa, plano.v.ymax, { color: azul, ancho: 1.3, guiones: [3, 5], alfa: 0.6 });
+    }
+    for (const y0 of base.asH || []) {
+      const ya = P.a * y0 + P.k;
+      plano.linea(plano.v.xmin, ya, plano.v.xmax, ya, { color: azul, ancho: 1.3, guiones: [3, 5], alfa: 0.6 });
+    }
+  }
+
+  if (verOriginal) plano.curva(base.f, { color: color('--eje'), ancho: 2.5, guiones: [8, 6], alfa: 0.9 });
+  if (reto) plano.curva(g(reto), { color: color('--naranja'), ancho: 5, alfa: 0.55 });
+  plano.curva(g(P), { color: azul, ancho: 3.5 });
+
+  // punto clave: de la original a la transformada
+  const [x0, y0] = base.clave;
+  if (P.b !== 0) {
+    const x1 = x0 / P.b + P.h, y1 = P.a * y0 + P.k;
+    if (verOriginal && (x0 !== x1 || y0 !== y1)) flecha(x0, y0, x1, y1);
+    if (verOriginal) plano.punto(x0, y0, { color: color('--eje'), radio: 5 });
+    plano.punto(x1, y1, { color: azul, radio: 6.5 });
+    plano.texto(`(${num(x1)}, ${num(y1)})`, plano.X(x1) + 11, plano.Y(y1) - 13,
+      { pixeles: true, color: azul, tam: 14, negrita: true, alinear: 'left', fondo: true });
+  }
+}
+
+function flecha(x0, y0, x1, y1) {
+  const ctx = plano.ctx;
+  const X0 = plano.X(x0), Y0 = plano.Y(y0), X1 = plano.X(x1), Y1 = plano.Y(y1);
+  const L = Math.hypot(X1 - X0, Y1 - Y0);
+  if (L < 14) return;
+  const ux = (X1 - X0) / L, uy = (Y1 - Y0) / L;
+  const Xf = X1 - ux * 9, Yf = Y1 - uy * 9;
+  ctx.save();
+  ctx.strokeStyle = color('--teal'); ctx.fillStyle = color('--teal'); ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(X0 + ux * 7, Y0 + uy * 7); ctx.lineTo(Xf, Yf); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(Xf + ux * 2, Yf + uy * 2);
+  ctx.lineTo(Xf - ux * 10 - uy * 6, Yf - uy * 10 + ux * 6);
+  ctx.lineTo(Xf - ux * 10 + uy * 6, Yf - uy * 10 - ux * 6);
+  ctx.fill(); ctx.restore();
+}
+
+// ---------------- interfaz ----------------
+function refrescar() {
+  for (const n of ['a', 'b', 'h', 'k']) { $(n).value = P[n]; $('o' + n).textContent = num(P[n]); }
+  $('formula').innerHTML = formula(P);
+  const d = descripcion(P), ol = $('pasos');
+  ol.innerHTML = '';
+  if (!d.length) { const li = document.createElement('li'); li.className = 'vacio'; li.textContent = 'Nada todavía: es la función original.'; ol.appendChild(li); }
+  d.forEach((t, i) => { const li = document.createElement('li'); li.textContent = t; if (pasoActivo >= 0 && i === d.length - 1) li.className = 'activo'; ol.appendChild(li); });
+  dibujar();
+}
+
+for (const n of ['a', 'b', 'h', 'k']) {
+  $(n).addEventListener('input', (e) => {
+    if (cancelar) { cancelar(); cancelar = null; pasoActivo = -1; }
+    let v = parseFloat(e.target.value);
+    if (n === 'b' && v === 0) v = P.b > 0 ? -0.25 : 0.25;   // b = 0 no tiene sentido
+    P[n] = v;
+    refrescar();
+  });
+}
+
+$('btnReset').onclick = () => { if (cancelar) cancelar(); pasoActivo = -1; Object.assign(P, { a: 1, b: 1, h: 0, k: 0 }); refrescar(); };
+$('btnOriginal').onclick = () => {
+  verOriginal = !verOriginal; $('btnOriginal').setAttribute('aria-pressed', verOriginal); dibujar();
+};
+
+// Paso a paso: de la original a la actual, en el orden en que actuan los parametros
+$('btnPasos').onclick = () => {
+  if (cancelar) cancelar();
+  const meta = { ...P };
+  Object.assign(P, { a: 1, b: 1, h: 0, k: 0 });
+  const etapas = [];
+  if (Math.abs(meta.b) !== 1) etapas.push({ n: 'b', desde: 1, hasta: Math.abs(meta.b) });
+  if (meta.b < 0) etapas.push({ n: 'b', salto: true, hasta: meta.b });
+  if (meta.h !== 0) etapas.push({ n: 'h', desde: 0, hasta: meta.h });
+  if (meta.a !== 1) etapas.push({ n: 'a', desde: 1, hasta: meta.a });
+  if (meta.k !== 0) etapas.push({ n: 'k', desde: 0, hasta: meta.k });
+  let i = 0;
+  const siguiente = () => {
+    if (i >= etapas.length) { pasoActivo = -1; cancelar = null; Object.assign(P, meta); refrescar(); return; }
+    const e = etapas[i++];
+    pasoActivo = i - 1;
+    if (e.salto) {
+      P[e.n] = e.hasta; refrescar();
+      const t = setTimeout(siguiente, reducido ? 200 : 900);
+      cancelar = () => clearTimeout(t);
+      return;
+    }
+    cancelar = animar(1100, (p) => {
+      let v = e.desde + (e.hasta - e.desde) * suave(p);
+      if (e.n === 'b' && Math.abs(v) < 1e-6) v = 1e-6;
+      P[e.n] = p === 1 ? e.hasta : v;
+      $('formula').innerHTML = formula({ ...P, [e.n]: Math.round(P[e.n] * 100) / 100 });
+      dibujar();
+    }, () => { refrescar(); const t = setTimeout(siguiente, reducido ? 100 : 450); cancelar = () => clearTimeout(t); });
+  };
+  refrescar();
+  if (!etapas.length) return;
+  setTimeout(siguiente, 300);
+};
+
+// ---------------- reto ----------------
+const elegir = (arr) => arr[Math.floor(Math.random() * arr.length)];
+$('btnReto').onclick = () => {
+  reto = {
+    a: elegir([-2, -1, -0.5, 0.5, 1, 1, 2, 3]),
+    b: elegir([1, 1, 1, -1, 2, 0.5]),
+    h: elegir([-4, -3, -2, -1, 0, 1, 2, 3, 4]),
+    k: elegir([-3, -2, -1, 0, 1, 2, 3]),
+  };
+  if (reto.a === 1 && reto.b === 1 && reto.h === 0 && reto.k === 0) reto.h = 2;
+  $('btnReto').setAttribute('aria-pressed', true);
+  $('btnComprobar').disabled = false; $('btnSolucion').disabled = false;
+  $('estadoReto').className = ''; $('estadoReto').textContent = 'Mueve los controles hasta cubrir la curva naranja.';
+  dibujar();
+};
+function coincide() {
+  const f1 = g(P), f2 = g(reto), v = plano.v;
+  let comparados = 0, distintos = 0;
+  for (let i = 0; i <= 400; i++) {
+    const x = v.xmin + (v.xmax - v.xmin) * i / 400;
+    const y1 = f1(x), y2 = f2(x);
+    const ok1 = isFinite(y1) && Math.abs(y1) < 50, ok2 = isFinite(y2) && Math.abs(y2) < 50;
+    if (ok1 !== ok2) { distintos++; continue; }
+    if (!ok1) continue;
+    comparados++;
+    if (Math.abs(y1 - y2) > 0.05) distintos++;
+  }
+  return comparados > 20 && distintos <= 2;
+}
+$('btnComprobar').onclick = () => {
+  if (!reto) return;
+  const ok = coincide();
+  $('estadoReto').className = ok ? 'bien' : 'mal';
+  $('estadoReto').textContent = ok ? '¡Coincide! Las dos curvas son la misma.' : 'Todavía no coinciden. Revisa un parámetro a la vez.';
+};
+$('btnSolucion').onclick = () => {
+  if (!reto) return;
+  $('estadoReto').className = '';
+  $('estadoReto').innerHTML = `Una solución: a = ${num(reto.a)}, b = ${num(reto.b)}, h = ${num(reto.h)}, k = ${num(reto.k)}.<br>${formula(reto)}`;
+};
+
+// botones de la funcion base
+const cont = $('bases');
+BASES.forEach((B, i) => {
+  const btn = document.createElement('button');
+  btn.textContent = B.et;
+  btn.setAttribute('aria-pressed', i === 0);
+  btn.onclick = () => {
+    if (cancelar) cancelar(); pasoActivo = -1;
+    base = B;
+    [...cont.children].forEach((c, j) => c.setAttribute('aria-pressed', j === i));
+    if (reto) { reto = null; $('btnReto').setAttribute('aria-pressed', false); $('estadoReto').textContent = '';
+      $('btnComprobar').disabled = true; $('btnSolucion').disabled = true; }
+    refrescar();
+  };
+  cont.appendChild(btn);
+});
+refrescar();
+</script>
+</body>
+</html>

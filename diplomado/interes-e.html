@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Del interés compuesto al número e</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --papel: #FAFBFC;
+  --panel: #FFFFFF;
+  --tinta: #17212B;
+  --tinta-suave: #55626E;
+  --cuadricula: #E3E8EE;
+  --eje: #6B7782;
+  --azul: #1F5A8A;
+  --verde: #2E7D32;
+  --naranja: #B85600;
+  --morado: #5B3A8C;
+  --rojo: #B42318;
+  --teal: #0F6E6E;
+  --borde: #D5DCE3;
+  --boton: #F1F4F7;
+  --boton-hover: #E4E9EF;
+  --sobre-color: #FFFFFF;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #161C22; --panel: #1D252D; --tinta: #E7EDF3; --tinta-suave: #A3B0BC;
+    --cuadricula: #27313B; --eje: #8A97A3; --azul: #7DB3E8; --verde: #7CCB80;
+    --naranja: #F2A65A; --morado: #BBA3E3; --rojo: #F08A80; --teal: #5FC4BC;
+    --borde: #33404C; --boton: #25303A; --boton-hover: #2E3A45; --sobre-color: #10161B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #161C22; --panel: #1D252D; --tinta: #E7EDF3; --tinta-suave: #A3B0BC;
+  --cuadricula: #27313B; --eje: #8A97A3; --azul: #7DB3E8; --verde: #7CCB80;
+  --naranja: #F2A65A; --morado: #BBA3E3; --rojo: #F08A80; --teal: #5FC4BC;
+  --borde: #33404C; --boton: #25303A; --boton-hover: #2E3A45; --sobre-color: #10161B;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.45;
+}
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 22px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 14px 20px 18px;
+}
+header { grid-column: 1 / -1; margin-bottom: 10px; }
+h1 { font-size: 1.65rem; line-height: 1.2; margin: 0; font-weight: 700; }
+.guia { color: var(--tinta-suave); margin: 4px 0 0; max-width: 75ch; }
+.lienzo {
+  position: relative;
+  min-height: 300px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--papel);
+}
+.lienzo canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.panel { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
+.grupo h2 { font-size: 0.95rem; margin: 0 0 6px; color: var(--tinta-suave); font-weight: 700; }
+.fila { display: flex; flex-wrap: wrap; gap: 6px; }
+
+button {
+  font: inherit;
+  font-size: 0.98rem;
+  min-height: 42px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--boton);
+  color: var(--tinta);
+  cursor: pointer;
+}
+button:hover { background: var(--boton-hover); }
+button[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: var(--sobre-color); }
+button.verde[aria-pressed="true"] { background: var(--verde); border-color: var(--verde); }
+button.naranja[aria-pressed="true"] { background: var(--naranja); border-color: var(--naranja); }
+button.morado[aria-pressed="true"] { background: var(--morado); border-color: var(--morado); }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+button.ancho { width: 100%; }
+
+input[type="range"] { width: 100%; accent-color: var(--azul); }
+.control { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 10px; }
+.control label { font-weight: 700; }
+.control output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--azul); }
+.control small { grid-column: 1 / -1; color: var(--tinta-suave); }
+.control input { grid-column: 1 / -1; }
+
+.leyenda {
+  border-left: 4px solid var(--azul);
+  padding: 6px 10px;
+  background: var(--panel);
+  border-radius: 0 8px 8px 0;
+  min-height: 3.2em;
+}
+.respuesta {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+}
+.respuesta[hidden] { display: none; }
+.formula { font-size: 1.5rem; font-weight: 700; color: var(--azul); line-height: 1.3; }
+.nota { color: var(--tinta-suave); font-size: 0.92rem; }
+sup { font-size: 0.7em; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  .lienzo { height: 60vh; min-height: 320px; margin-bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+
+.pestanas { display: flex; gap: 6px; margin-top: 10px; }
+.pestanas button[aria-selected="true"] { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.lectura { font-size: 1.15rem; }
+.lectura .grande { display: block; font-size: 2.1rem; font-weight: 700; color: var(--azul); font-variant-numeric: tabular-nums; line-height: 1.15; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.95rem; }
+th, td { padding: 4px 6px; text-align: left; border-bottom: 1px solid var(--borde); }
+th { color: var(--tinta-suave); font-weight: 700; }
+td:last-child, th:last-child { text-align: right; }
+tr.actual td { background: var(--panel); font-weight: 700; color: var(--azul); }
+td.oculto { color: var(--tinta-suave); }
+.techo { color: var(--morado); font-weight: 700; }
+.vista[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Del interés compuesto al número e</h1>
+    <p class="guia" id="guia">Un peso a una tasa nominal anual, capitalizado cada vez más seguido durante un año. ¿Crece sin límite?</p>
+    <div class="pestanas" role="tablist">
+      <button role="tab" id="tabE" aria-selected="true" aria-controls="panelE">Capitalizar más seguido</button>
+      <button role="tab" id="tabR" aria-selected="false" aria-controls="panelR">La reserva al 8 %</button>
+    </div>
+  </header>
+
+  <div class="lienzo"><canvas id="lienzo" role="img" aria-label="Crecimiento del capital según la capitalización"></canvas></div>
+
+  <aside class="panel">
+    <!-- ================= Pestaña 1 ================= -->
+    <div class="vista" id="panelE" role="tabpanel">
+      <section class="grupo">
+        <h2>¿Cuántas veces al año se capitaliza?</h2>
+        <div class="fila" id="botonesN"></div>
+      </section>
+
+      <section class="grupo" style="margin-top:14px">
+        <div class="control">
+          <label for="tasaE">Tasa nominal anual</label><output id="oTasaE">100 %</output>
+          <input id="tasaE" type="range" min="1" max="100" step="1" value="100">
+        </div>
+      </section>
+
+      <p class="lectura" style="margin:14px 0 6px">
+        <span id="expresion">(1 + 1/1)<sup>1</sup></span>
+        <span class="grande" id="valorE">2</span>
+      </p>
+
+      <section class="grupo">
+        <table aria-label="Valor al cabo de un año">
+          <thead><tr><th>Capitalización</th><th>Valor al año</th></tr></thead>
+          <tbody id="tablaE"></tbody>
+          <tfoot><tr><td class="techo">Techo: e<sup id="supTecho"></sup></td><td class="techo" id="valorTecho"></td></tr></tfoot>
+        </table>
+      </section>
+
+      <div class="fila" style="margin-top:10px">
+        <button id="btnRecorrer">Recorrer de anual a continua</button>
+        <button id="btnLimpiar">Borrar comparaciones</button>
+      </div>
+      <p class="nota">Por más seguido que se capitalice, el valor nunca pasa el techo. Al 100 %, ese techo es el número e ≈ 2.71828.</p>
+    </div>
+
+    <!-- ================= Pestaña 2 ================= -->
+    <div class="vista" id="panelR" role="tabpanel" hidden>
+      <section class="grupo">
+        <p style="margin:0 0 10px">Una reserva de 1000 crece a una tasa anual. <b>¿Cuánto tarda en duplicarse?</b></p>
+        <div class="control">
+          <label for="tasaR">Tasa anual</label><output id="oTasaR">8 %</output>
+          <input id="tasaR" type="range" min="1" max="20" step="0.5" value="8">
+        </div>
+      </section>
+      <section class="grupo" style="margin-top:12px">
+        <div class="sombras-leyenda" style="display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center">
+          <span style="width:28px;height:4px;background:var(--azul)"></span><span>Capitalización anual: 1000(1 + r)<sup>t</sup></span>
+          <span style="width:28px;height:4px;background:var(--morado)"></span><span>Capitalización continua: 1000e<sup>rt</sup></span>
+          <span style="width:28px;height:0;border-top:3px dashed var(--naranja)"></span><span>El doble: 2000</span>
+        </div>
+      </section>
+      <button id="btnRespR" class="ancho" aria-expanded="false" style="margin-top:12px">Mostrar la respuesta</button>
+      <div class="respuesta" id="respR" hidden style="margin-top:8px"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+//  Plano cartesiano sobre canvas (compartido por las tres animaciones)
+// ---------------------------------------------------------------------
+const color = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FUENTE = '"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif';
+const fmt = (v, d = 2) => {
+  if (!isFinite(v)) return v > 0 ? '∞' : '−∞';
+  let s = Number(v.toFixed(d)).toString();
+  return s.replace('-', '−');
+};
+
+class Plano {
+  constructor(canvas, dibujar) {
+    this.c = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.dibujar = dibujar;
+    this.v = { xmin: -5, xmax: 5, ymin: -5, ymax: 5 };
+    this.igual = null;
+    this.w = 1; this.h = 1;
+    new ResizeObserver(() => { this.medir(); this.dibujar(); }).observe(canvas);
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => this.dibujar());
+    if (document.fonts) document.fonts.ready.then(() => this.dibujar());
+  }
+  medir() {
+    const r = this.c.getBoundingClientRect();
+    const d = window.devicePixelRatio || 1;
+    this.w = Math.max(1, r.width); this.h = Math.max(1, r.height);
+    this.c.width = Math.round(this.w * d); this.c.height = Math.round(this.h * d);
+    this.ctx.setTransform(d, 0, 0, d, 0, 0);
+    if (this.igual) this.vistaIgual(...this.igual);
+  }
+  // Misma escala en ambos ejes: se fija el rango de x y el centro en y
+  vistaIgual(xmin, xmax, ycentro) {
+    this.igual = [xmin, xmax, ycentro];
+    const alto = (xmax - xmin) * this.h / this.w;
+    this.v = { xmin, xmax, ymin: ycentro - alto / 2, ymax: ycentro + alto / 2 };
+  }
+  vista(xmin, xmax, ymin, ymax) { this.igual = null; this.v = { xmin, xmax, ymin, ymax }; }
+  X(x) { return (x - this.v.xmin) / (this.v.xmax - this.v.xmin) * this.w; }
+  Y(y) { return this.h - (y - this.v.ymin) / (this.v.ymax - this.v.ymin) * this.h; }
+  invX(px) { return this.v.xmin + px / this.w * (this.v.xmax - this.v.xmin); }
+  get alto() { return this.v.ymax - this.v.ymin; }
+  get ancho() { return this.v.xmax - this.v.xmin; }
+
+  static pasoBonito(unidadesPorPixel, minPx) {
+    const bruto = unidadesPorPixel * minPx;
+    const p = Math.pow(10, Math.floor(Math.log10(bruto)));
+    for (const m of [1, 2, 5, 10]) if (m * p >= bruto) return m * p;
+    return 10 * p;
+  }
+
+  // Fondo de papel cuadriculado con ejes. op: {ejesEnBorde, fmtX, fmtY, etiquetaX, etiquetaY, pasoX, pasoY}
+  fondo(op = {}) {
+    const ctx = this.ctx, v = this.v;
+    ctx.fillStyle = color('--papel');
+    ctx.fillRect(0, 0, this.w, this.h);
+    const px = op.pasoX || Plano.pasoBonito(this.ancho / this.w, 58);
+    const py = op.pasoY || (this.igual ? px : Plano.pasoBonito(this.alto / this.h, 44));
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = color('--cuadricula');
+    ctx.beginPath();
+    for (let x = Math.ceil(v.xmin / px) * px; x <= v.xmax; x += px) {
+      const X = Math.round(this.X(x)) + 0.5; ctx.moveTo(X, 0); ctx.lineTo(X, this.h);
+    }
+    for (let y = Math.ceil(v.ymin / py) * py; y <= v.ymax; y += py) {
+      const Y = Math.round(this.Y(y)) + 0.5; ctx.moveTo(0, Y); ctx.lineTo(this.w, Y);
+    }
+    ctx.stroke();
+
+    // posicion de los ejes
+    const ejeY0 = op.ejeXPixel ?? (op.ejesEnBorde ? this.h - 1 : Math.min(Math.max(this.Y(0), 1), this.h - 1));
+    const ejeX0 = op.ejesEnBorde ? 1 : Math.min(Math.max(this.X(0), 1), this.w - 1);
+    this.ejeY0 = ejeY0; this.ejeX0 = ejeX0;
+    ctx.strokeStyle = color('--eje');
+    ctx.fillStyle = color('--eje');
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(0, ejeY0); ctx.lineTo(this.w - 2, ejeY0);
+    ctx.moveTo(ejeX0, this.h); ctx.lineTo(ejeX0, 2);
+    ctx.stroke();
+    // flechas
+    ctx.beginPath();
+    ctx.moveTo(this.w - 1, ejeY0); ctx.lineTo(this.w - 11, ejeY0 - 5); ctx.lineTo(this.w - 11, ejeY0 + 5);
+    ctx.moveTo(ejeX0, 1); ctx.lineTo(ejeX0 - 5, 11); ctx.lineTo(ejeX0 + 5, 11);
+    ctx.fill();
+
+    // numeros
+    ctx.font = `13px ${FUENTE}`;
+    ctx.fillStyle = color('--tinta-suave');
+    const fx = op.fmtX || ((x) => fmt(x, 3));
+    const fy = op.fmtY || ((y) => fmt(y, 3));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(v.xmin / px) * px; x <= v.xmax - px * 0.3; x += px) {
+      if (Math.abs(x) < px / 2 && !op.ejesEnBorde) continue;
+      const X = this.X(x);
+      if (X < 12) continue;
+      const yy = ejeY0 + 5 > this.h - 18 ? ejeY0 - 20 : ejeY0 + 5;
+      ctx.fillText(fx(Math.round(x / px) * px), X, yy);
+    }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(v.ymin / py) * py; y <= v.ymax - py * 0.3; y += py) {
+      if (Math.abs(y) < py / 2 && !op.ejesEnBorde) continue;
+      const Y = this.Y(y);
+      if (Y > this.h - 10 || Y < 10 || (op.ejeXPixel && Y > ejeY0 - 6)) continue;
+      const xx = ejeX0 - 6 < 30 ? ejeX0 + 6 : ejeX0 - 6;
+      ctx.textAlign = ejeX0 - 6 < 30 ? 'left' : 'right';
+      ctx.fillText(fy(Math.round(y / py) * py), xx, Y);
+    }
+    // nombres de los ejes
+    ctx.font = `italic 15px ${FUENTE}`;
+    ctx.fillStyle = color('--tinta');
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(op.etiquetaX || 'x', this.w - 6, ejeY0 - 8);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(op.etiquetaY || 'y', ejeX0 + 10, 4);
+  }
+
+  // Curva y = f(x). op: {color, ancho, guiones, x0, x1, alfa}
+  curva(f, op = {}) {
+    const ctx = this.ctx;
+    const a = Math.max(op.x0 ?? this.v.xmin, this.v.xmin);
+    const b = Math.min(op.x1 ?? this.v.xmax, this.v.xmax);
+    if (b <= a) return;
+    const n = Math.ceil(this.w * 1.5);
+    const alto = this.alto, centro = (this.v.ymin + this.v.ymax) / 2;
+    ctx.save();
+    ctx.strokeStyle = op.color || color('--azul');
+    ctx.lineWidth = op.ancho || 3;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.globalAlpha = op.alfa ?? 1;
+    ctx.setLineDash(op.guiones || []);
+    ctx.beginPath();
+    let abierto = false, yprev = null;
+    for (let i = 0; i <= n; i++) {
+      const x = a + (b - a) * i / n;
+      const y = f(x);
+      if (!isFinite(y) || Math.abs(y - centro) > alto * 6) { abierto = false; yprev = null; continue; }
+      if (abierto && yprev !== null && Math.abs(y - yprev) > alto * 0.9) abierto = false;
+      const X = this.X(x), Y = this.Y(y);
+      if (!abierto) { ctx.moveTo(X, Y); abierto = true; } else ctx.lineTo(X, Y);
+      yprev = y;
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  punto(x, y, op = {}) {
+    const ctx = this.ctx, r = op.radio || 6;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(this.X(x), this.Y(y), r, 0, 2 * Math.PI);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = op.color || color('--azul');
+    ctx.fillStyle = op.abierto ? color('--papel') : (op.color || color('--azul'));
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  linea(x1, y1, x2, y2, op = {}) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.strokeStyle = op.color || color('--eje');
+    ctx.lineWidth = op.ancho || 1.5;
+    ctx.globalAlpha = op.alfa ?? 1;
+    ctx.setLineDash(op.guiones || []);
+    ctx.beginPath(); ctx.moveTo(this.X(x1), this.Y(y1)); ctx.lineTo(this.X(x2), this.Y(y2)); ctx.stroke();
+    ctx.restore();
+  }
+
+  texto(t, x, y, op = {}) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.font = `${op.negrita ? '700 ' : ''}${op.tam || 15}px ${FUENTE}`;
+    ctx.fillStyle = op.color || color('--tinta');
+    ctx.textAlign = op.alinear || 'left';
+    ctx.textBaseline = op.base || 'middle';
+    const X = op.pixeles ? x : this.X(x), Y = op.pixeles ? y : this.Y(y);
+    if (op.fondo) {
+      const m = ctx.measureText(t), pad = 4;
+      let x0 = X - (ctx.textAlign === 'center' ? m.width / 2 : ctx.textAlign === 'right' ? m.width : 0);
+      ctx.fillStyle = color('--papel'); ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - pad, Y - (op.tam || 15) * 0.75, m.width + 2 * pad, (op.tam || 15) * 1.5);
+      ctx.globalAlpha = 1; ctx.fillStyle = op.color || color('--tinta');
+    }
+    ctx.fillText(t, X, Y);
+    ctx.restore();
+  }
+}
+
+// Animacion con requestAnimationFrame; respeta "reducir movimiento" acortando la duracion
+const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function animar(duracion, cadaPaso, alTerminar) {
+  const dur = reducido ? Math.min(duracion, 250) : duracion;
+  let inicio = null, cancelado = false;
+  function paso(t) {
+    if (cancelado) return;
+    if (inicio === null) inicio = t;
+    const p = Math.min(1, (t - inicio) / dur);
+    cadaPaso(p);
+    if (p < 1) requestAnimationFrame(paso); else if (alTerminar) alTerminar();
+  }
+  requestAnimationFrame(paso);
+  return () => { cancelado = true; };
+}
+const suave = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+
+
+const $ = (id) => document.getElementById(id);
+const plano = new Plano($('lienzo'), dibujar);
+let pestana = 'E';
+
+// ================= Pestaña 1: hacia e =================
+const OPCIONES = [
+  { n: 1, et: 'Anual' }, { n: 2, et: 'Semestral' }, { n: 4, et: 'Trimestral' }, { n: 12, et: 'Mensual' },
+  { n: 52, et: 'Semanal' }, { n: 365, et: 'Diaria' }, { n: 8760, et: 'Cada hora' }, { n: Infinity, et: 'Continua' },
+];
+let r = 1;                 // tasa
+let actual = OPCIONES[0];  // capitalizacion elegida
+let vistos = new Set([1]); // filas reveladas en la tabla
+let cancelarRecorrido = null;
+
+const valorAl = (n, t = 1) => n === Infinity ? Math.exp(r * t) : Math.pow(1 + r / n, Math.floor(n * t + 1e-9));
+const final = (n) => n === Infinity ? Math.exp(r) : Math.pow(1 + r / n, n);
+
+function escalera(n, col, ancho, alfa) {
+  const ctx = plano.ctx;
+  ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = ancho; ctx.globalAlpha = alfa; ctx.lineJoin = 'miter';
+  ctx.beginPath();
+  if (n === Infinity) {
+    for (let i = 0; i <= 400; i++) { const t = i / 400, X = plano.X(t), Y = plano.Y(Math.exp(r * t)); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+  } else if (n > plano.w) {
+    for (let i = 0; i <= plano.w; i++) { const t = i / plano.w, X = plano.X(t), Y = plano.Y(valorAl(n, t)); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+  } else {
+    let v = 1; ctx.moveTo(plano.X(0), plano.Y(1));
+    for (let k = 1; k <= n; k++) {
+      const t = k / n; ctx.lineTo(plano.X(t), plano.Y(v));
+      v *= 1 + r / n; ctx.lineTo(plano.X(t), plano.Y(v));
+    }
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+function dibujarE() {
+  const techo = Math.exp(r);
+  const ymax = 1 + (techo - 1) * 1.25;
+  plano.vista(-0.04, 1.08, 1 - (techo - 1) * 0.16, ymax);
+  plano.fondo({
+    ejeXPixel: plano.h - 26,
+    pasoX: 0.25, fmtX: (t) => ({ 0: '0', 0.25: '3 meses', 0.5: '6 meses', 0.75: '9 meses', 1: '1 año' })[Math.round(t * 100) / 100] ?? '',
+    etiquetaX: 'tiempo', etiquetaY: 'valor de 1 peso', fmtY: (y) => fmt(y, 2),
+  });
+  // techo
+  plano.linea(0, techo, 1.08, techo, { color: color('--morado'), ancho: 2, guiones: [8, 6] });
+  plano.texto(r === 1 ? 'techo: e ≈ 2.71828' : `techo: e^${fmt(r, 2)} ≈ ${fmt(techo, 5)}`, 0.02, techo,
+    { color: color('--morado'), negrita: true, base: 'bottom', tam: 15, fondo: true });
+  // comparaciones anteriores
+  for (const o of OPCIONES) if (vistos.has(o.n) && o !== actual) escalera(o.n, color('--eje'), 2, 0.45);
+  // actual
+  escalera(actual.n, color('--azul'), 3.5, 1);
+  const vf = final(actual.n);
+  plano.punto(1, vf, { color: color('--azul'), radio: 6.5 });
+  plano.texto(fmt(vf, 6), plano.X(1) - 12, plano.Y(vf) + 16, { pixeles: true, color: color('--azul'), negrita: true, alinear: 'right', base: 'top', tam: 16, fondo: true });
+}
+
+function expresion(n) {
+  const rr = fmt(r, 2);
+  if (n === Infinity) return r === 1 ? 'Continua: e<sup>1</sup> = e' : `Continua: e<sup>${rr}</sup>`;
+  const num = r === 1 ? `1/${n}` : `${rr}/${n}`;
+  return `(1 + ${num})<sup>${n}</sup>`;
+}
+
+function refrescarE() {
+  $('oTasaE').textContent = `${Math.round(r * 100)} %`;
+  $('expresion').innerHTML = expresion(actual.n);
+  $('valorE').textContent = fmt(final(actual.n), 6);
+  $('supTecho').textContent = r === 1 ? '' : fmt(r, 2);
+  $('valorTecho').textContent = fmt(Math.exp(r), 6);
+  const tb = $('tablaE'); tb.innerHTML = '';
+  for (const o of OPCIONES) {
+    const tr = document.createElement('tr');
+    if (o === actual) tr.className = 'actual';
+    const visto = vistos.has(o.n);
+    tr.innerHTML = `<td>${o.et}${o.n === Infinity ? '' : ` (n = ${o.n})`}</td><td class="${visto ? '' : 'oculto'}">${visto ? fmt(final(o.n), 6) : '¿?'}</td>`;
+    tb.appendChild(tr);
+  }
+  [...$('botonesN').children].forEach((b, i) => b.setAttribute('aria-pressed', OPCIONES[i] === actual));
+  dibujar();
+}
+
+function elegir(o) { actual = o; vistos.add(o.n); refrescarE(); }
+
+OPCIONES.forEach((o) => {
+  const b = document.createElement('button');
+  b.textContent = o.et;
+  b.onclick = () => { if (cancelarRecorrido) { cancelarRecorrido(); cancelarRecorrido = null; } elegir(o); };
+  $('botonesN').appendChild(b);
+});
+$('tasaE').oninput = (e) => { r = e.target.value / 100; refrescarE(); };
+$('btnLimpiar').onclick = () => { vistos = new Set([actual.n]); refrescarE(); };
+$('btnRecorrer').onclick = () => {
+  if (cancelarRecorrido) cancelarRecorrido();
+  vistos = new Set();
+  let i = 0, t = null;
+  const paso = () => { elegir(OPCIONES[i++]); if (i < OPCIONES.length) t = setTimeout(paso, reducido ? 400 : 1600); else cancelarRecorrido = null; };
+  cancelarRecorrido = () => clearTimeout(t);
+  paso();
+};
+
+// ================= Pestaña 2: la reserva =================
+let tasaR = 0.08, verRespR = false;
+function dibujarR() {
+  const tAnual = Math.log(2) / Math.log(1 + tasaR), tCont = Math.log(2) / tasaR;
+  const tmax = Math.max(4, Math.ceil(tAnual * 1.6));
+  plano.vista(-tmax * 0.03, tmax, -150, 3300);
+  plano.fondo({ etiquetaX: 'años', etiquetaY: 'valor', fmtX: (t) => fmt(t, 1), fmtY: (y) => fmt(y, 0) });
+  plano.linea(0, 2000, tmax, 2000, { color: color('--naranja'), ancho: 2.5, guiones: [8, 6] });
+  plano.curva((t) => t >= 0 ? 1000 * Math.pow(1 + tasaR, t) : NaN, { color: color('--azul'), ancho: 3.5 });
+  plano.curva((t) => t >= 0 ? 1000 * Math.exp(tasaR * t) : NaN, { color: color('--morado'), ancho: 3 });
+  if (verRespR) {
+    for (const [t, c] of [[tAnual, '--azul'], [tCont, '--morado']]) {
+      plano.linea(t, 0, t, 2000, { color: color(c), ancho: 1.8, guiones: [4, 4] });
+      plano.punto(t, 2000, { color: color(c), radio: 6 });
+    }
+    plano.texto(`anual: ${fmt(tAnual, 2)} años`, plano.X(tAnual) + 10, plano.Y(2000) + 18,
+      { pixeles: true, color: color('--azul'), negrita: true, tam: 15, fondo: true });
+    plano.texto(`continua: ${fmt(tCont, 2)} años`, plano.X(tCont) - 10, plano.Y(2000) - 18,
+      { pixeles: true, color: color('--morado'), negrita: true, alinear: 'right', tam: 15, fondo: true });
+  }
+}
+function refrescarR() {
+  $('oTasaR').textContent = `${fmt(tasaR * 100, 1)} %`;
+  const p = fmt(tasaR * 100, 1);
+  const tAnual = Math.log(2) / Math.log(1 + tasaR), tCont = Math.log(2) / tasaR;
+  $('respR').innerHTML =
+    `<p style="margin:0 0 6px"><b>Anual:</b> 1000(1 + ${fmt(tasaR, 3)})<sup>t</sup> = 2000, así que t = ln 2 / ln(${fmt(1 + tasaR, 3)}) ≈ <b>${fmt(tAnual, 2)} años</b>.</p>` +
+    `<p style="margin:0 0 6px"><b>Continua:</b> e<sup>${fmt(tasaR, 3)}t</sup> = 2, así que t = ln 2 / ${fmt(tasaR, 3)} ≈ <b>${fmt(tCont, 2)} años</b>.</p>` +
+    `<p style="margin:0 0 6px"><b>Regla del 72:</b> 72 / ${p} ≈ <b>${fmt(72 / (tasaR * 100), 2)} años</b>.</p>` +
+    `<p class="nota" style="margin:0">El capital inicial se cancela: cualquier monto tarda lo mismo en duplicarse. ` +
+    `La constante que aparece al duplicar es ln 2 ≈ 0.693, no e.</p>`;
+  dibujar();
+}
+$('tasaR').oninput = (e) => { tasaR = e.target.value / 100; refrescarR(); };
+$('btnRespR').onclick = () => {
+  verRespR = !verRespR;
+  $('respR').hidden = !verRespR;
+  $('btnRespR').setAttribute('aria-expanded', verRespR);
+  $('btnRespR').textContent = verRespR ? 'Ocultar la respuesta' : 'Mostrar la respuesta';
+  dibujar();
+};
+
+// ================= pestañas =================
+function cambiar(p) {
+  pestana = p;
+  $('tabE').setAttribute('aria-selected', p === 'E');
+  $('tabR').setAttribute('aria-selected', p === 'R');
+  $('panelE').hidden = p !== 'E';
+  $('panelR').hidden = p !== 'R';
+  $('guia').textContent = p === 'E'
+    ? 'Un peso a una tasa nominal anual, capitalizado cada vez más seguido durante un año. ¿Crece sin límite?'
+    : 'Predice primero: ¿cuántos años tarda en duplicarse? Luego muestra la respuesta.';
+  dibujar();
+}
+$('tabE').onclick = () => cambiar('E');
+$('tabR').onclick = () => cambiar('R');
+
+function dibujar() { if (pestana === 'E') dibujarE(); else dibujarR(); }
+refrescarE(); refrescarR();
+</script>
+</body>
+</html>
