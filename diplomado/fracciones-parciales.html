@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fracciones parciales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  window.__mj = { ready: false, failed: false };
+  window.MathJax = {
+    svg: { fontCache: 'local' },
+    startup: {
+      typeset: false,
+      ready() {
+        MathJax.startup.defaultReady();
+        MathJax.startup.promise.then(() => {
+          window.__mj.ready = true;
+          try { MathJax.startup.document.updateDocument(); } catch (e) {}
+          if (window.paintAll) window.paintAll();
+        });
+      }
+    }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+<style>
+:root {
+  --paper: #edf1f5;
+  --grid: #dde4ec;
+  --card: #ffffff;
+  --ink: #172033;
+  --muted: #536074;
+  --rule: #cdd6e1;
+  --accent: #2743b0;
+  --accent-ink: #ffffff;
+  --mark: #fff0a8;
+  --err: #a3261f;
+  --err-bg: #fbeceb;
+  --ok: #2c6a3a;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10151d; --grid: #19212c; --card: #161d28; --ink: #e2e7ef; --muted: #9aa6b7;
+    --rule: #2b3544; --accent: #93a6ff; --accent-ink: #0c1120; --mark: #3b3418;
+    --err: #ff9d94; --err-bg: #341c1c; --ok: #8fd3a0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10151d; --grid: #19212c; --card: #161d28; --ink: #e2e7ef; --muted: #9aa6b7;
+  --rule: #2b3544; --accent: #93a6ff; --accent-ink: #0c1120; --mark: #3b3418;
+  --err: #ff9d94; --err-bg: #341c1c; --ok: #8fd3a0; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 26px 26px;
+  font-family: "Literata", Georgia, "Times New Roman", serif;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 46rem; margin: 0 auto; padding: 2.75rem 1.25rem 4rem; }
+
+header h1 {
+  font-size: clamp(2.3rem, 7.5vw, 3.6rem);
+  font-weight: 650;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.6rem;
+}
+.lede { margin: 0 0 1.75rem; color: var(--muted); max-width: 37rem; }
+
+.bench {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 1.5rem 1.5rem 1.25rem;
+}
+.fx { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 1.1rem; }
+.fx-label { font-size: 1.7rem; white-space: nowrap; }
+.fx-label i { font-style: italic; }
+.stack { display: grid; gap: 0.55rem; }
+.field {
+  width: 100%;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 1.15rem;
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+}
+.field::placeholder { color: var(--muted); opacity: 0.7; }
+.field:focus { outline: none; border-color: var(--accent); }
+.field:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.vinculum { height: 3px; border-radius: 2px; background: var(--ink); }
+
+.preview { min-height: 3.2rem; margin-top: 1rem; display: flex; align-items: center; overflow-x: auto; }
+.preview .note { font-size: 0.92rem; color: var(--muted); }
+.preview .note.bad { color: var(--err); }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-top: 0.75rem; }
+button { font: inherit; }
+.go {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 0;
+  border-radius: 10px;
+  padding: 0.7rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.go:hover { filter: brightness(1.08); }
+.go:focus-visible, .chip:focus-visible, .copy:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.hint { font-size: 0.9rem; color: var(--muted); }
+
+details.help { margin-top: 1rem; border-top: 1px solid var(--rule); padding-top: 0.75rem; }
+summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+.help p { margin: 0.5rem 0; color: var(--muted); font-size: 0.95rem; }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 0.88em; color: var(--ink); }
+
+.examples { margin-top: 2.25rem; }
+.examples h2, .results h2 { font-size: 1.3rem; font-weight: 600; margin: 0 0 0.75rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.chip {
+  text-align: left;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem 0.55rem;
+  cursor: pointer;
+  line-height: 1.35;
+}
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip b { display: block; font-weight: 550; font-size: 0.95rem; }
+.chip span { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.76rem; color: var(--muted); }
+
+.results { margin-top: 2.5rem; }
+ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; }
+li.step { position: relative; padding: 0 0 1.9rem 3.1rem; counter-increment: s; }
+li.step::before {
+  content: counter(s);
+  position: absolute; left: 0; top: 0.05rem;
+  width: 2.05rem; height: 2.05rem; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--card); border: 1.5px solid var(--ink);
+  font-weight: 600; font-size: 0.95rem;
+}
+li.step::after {
+  content: ""; position: absolute; left: calc(1.025rem - 0.75px); top: 2.35rem; bottom: 0.35rem;
+  width: 1.5px; background: var(--rule);
+}
+li.step:last-child::after { display: none; }
+.step h3 { margin: 0 0 0.3rem; font-size: 1.16rem; font-weight: 600; line-height: 1.5; }
+.step p { margin: 0.2rem 0 0.55rem; color: var(--muted); max-width: 38rem; }
+.math { overflow-x: auto; overflow-y: hidden; padding: 0.45rem 0.1rem; min-height: 2.4rem; color: var(--ink); }
+.raw { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; }
+.mi { color: var(--ink); }
+mjx-container { display: inline-block; }
+mjx-container > svg { overflow: visible; }
+
+.result .math {
+  background: var(--mark);
+  padding: 0.85rem 1.1rem;
+  border-radius: 6px 14px 8px 12px / 12px 6px 14px 8px;
+}
+.result .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.55rem; }
+.copy {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--rule); border-radius: 8px;
+  padding: 0.3rem 0.7rem; font-size: 0.88rem; cursor: pointer;
+}
+.copy:hover { border-color: var(--accent); }
+.check { font-size: 0.88rem; color: var(--ok); }
+.check.bad { color: var(--err); }
+
+.consts { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; margin-top: 0.35rem; }
+.const { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 0.35rem 0.75rem; min-height: 2.4rem; display: flex; align-items: center; }
+
+.step details { margin-top: 0.35rem; }
+.step details .math { padding-left: 0.5rem; }
+.formulas .math { padding-left: 0.5rem; }
+.formulas p { margin: 0.6rem 0 0; font-size: 0.95rem; }
+
+.error {
+  border-left: 3px solid var(--err);
+  background: var(--err-bg);
+  border-radius: 0 12px 12px 0;
+  padding: 1rem 1.25rem;
+}
+.error h3 { margin: 0 0 0.35rem; font-size: 1.1rem; color: var(--err); }
+.error p { margin: 0.3rem 0; }
+
+footer { margin-top: 2.5rem; font-size: 0.88rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 1rem; }
+
+@media (max-width: 520px) {
+  main { padding-top: 1.75rem; }
+  .bench { padding: 1.1rem 1rem 1rem; }
+  .fx { grid-template-columns: 1fr; gap: 0.6rem; }
+  .fx-label { font-size: 1.35rem; }
+  li.step { padding-left: 2.6rem; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Fracciones parciales</h1>
+    <p class="lede">Escribe el numerador y el denominador de una función racional. La página divide si hace falta, factoriza el denominador, plantea y resuelve el sistema de las constantes, y al final integra.</p>
+  </header>
+
+  <section class="bench" aria-label="Función a descomponer">
+    <div class="fx">
+      <label class="fx-label" for="num"><i>f</i>(<i>x</i>) =</label>
+      <div class="stack">
+        <input id="num" class="field" aria-label="Numerador" placeholder="numerador" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <div class="vinculum" aria-hidden="true"></div>
+        <input id="den" class="field" aria-label="Denominador" placeholder="denominador" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="preview" id="preview" aria-live="polite"></div>
+    <div class="actions">
+      <button class="go" id="go" type="button">Descomponer e integrar</button>
+      <span class="hint">o pulsa Enter en cualquiera de los dos campos</span>
+    </div>
+    <details class="help">
+      <summary>Cómo escribir las expresiones</summary>
+      <p>Potencias con <code>^</code>, como <code>x^3</code>. La multiplicación puede ir con <code>*</code> o sin signo: <code>2x</code>, <code>x(x+1)</code>, <code>(x-1)^2(x^2+1)</code>. Se aceptan fracciones como <code>1/2</code> y decimales como <code>0.5</code>.</p>
+      <p>El denominador puede escribirse desarrollado o ya factorizado; da lo mismo. Debe poder descomponerse en factores lineales y cuadráticos con coeficientes racionales, como en los ejercicios del curso.</p>
+    </details>
+  </section>
+
+  <section class="examples" aria-labelledby="ej-t">
+    <h2 id="ej-t">Ejemplos</h2>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section class="results" id="out" aria-live="polite"></section>
+
+  <footer>Todos los cálculos se hacen con fracciones exactas, sin redondeos.</footer>
+</main>
+<script>
+/* ===== Motor de fracciones parciales (aritmética racional exacta) ===== */
+const babs = a => (a < 0n ? -a : a);
+const bgcd = (a, b) => { a = babs(a); b = babs(b); while (b) { [a, b] = [b, a % b]; } return a; };
+class Q {
+  constructor(n, d = 1n) {
+    n = BigInt(n); d = BigInt(d);
+    if (d === 0n) throw new Error('División entre cero.');
+    if (d < 0n) { n = -n; d = -d; }
+    const g = bgcd(n, d) || 1n;
+    this.n = n / g; this.d = d / g;
+  }
+  add(o) { return new Q(this.n * o.d + o.n * this.d, this.d * o.d); }
+  sub(o) { return new Q(this.n * o.d - o.n * this.d, this.d * o.d); }
+  mul(o) { return new Q(this.n * o.n, this.d * o.d); }
+  div(o) { if (o.n === 0n) throw new Error('División entre cero.'); return new Q(this.n * o.d, this.d * o.n); }
+  neg() { return new Q(-this.n, this.d); }
+  abs() { return new Q(babs(this.n), this.d); }
+  isZero() { return this.n === 0n; }
+  sign() { return this.n > 0n ? 1 : this.n < 0n ? -1 : 0; }
+  num() { return Number(this.n) / Number(this.d); }
+}
+const Z = new Q(0), ONE = new Q(1);
+const qq = (n, d = 1) => new Q(n, d);
+
+/* ----- Polinomios con coeficientes racionales (índice = grado) ----- */
+const P = {
+  trim(p) { p = p.slice(); while (p.length && p[p.length - 1].isZero()) p.pop(); return p; },
+  deg(p) { return p.length - 1; },
+  add(a, b) { const r = []; for (let i = 0; i < Math.max(a.length, b.length); i++) r.push((a[i] || Z).add(b[i] || Z)); return P.trim(r); },
+  sub(a, b) { const r = []; for (let i = 0; i < Math.max(a.length, b.length); i++) r.push((a[i] || Z).sub(b[i] || Z)); return P.trim(r); },
+  scale(a, c) { return P.trim(a.map(x => x.mul(c))); },
+  mul(a, b) {
+    if (!a.length || !b.length) return [];
+    const r = Array(a.length + b.length - 1).fill(Z);
+    for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) r[i + j] = r[i + j].add(a[i].mul(b[j]));
+    return P.trim(r);
+  },
+  pow(a, k) { let r = [ONE]; for (let i = 0; i < k; i++) r = P.mul(r, a); return r; },
+  divmod(a, b) {
+    const db = P.deg(b), lb = b[db], qd = P.deg(a) - db;
+    if (qd < 0) return { q: [], r: P.trim(a) };
+    const r = a.slice(), q = Array(qd + 1).fill(Z);
+    for (let i = qd; i >= 0; i--) {
+      const c = r[i + db].div(lb); q[i] = c;
+      if (!c.isZero()) for (let j = 0; j <= db; j++) r[i + j] = r[i + j].sub(c.mul(b[j]));
+    }
+    return { q: P.trim(q), r: P.trim(r.slice(0, db)) };
+  },
+  eval(p, x) { let s = 0; for (let i = p.length - 1; i >= 0; i--) s = s * x + p[i].num(); return s; },
+};
+
+/* ----- Lectura de expresiones ----- */
+function tokenize(s) {
+  s = s.replace(/[−–—]/g, '-').replace(/[·×∙⋅]/g, '*').replace(/²/g, '^2').replace(/³/g, '^3')
+    .replace(/\*\*/g, '^').replace(/[\[{]/g, '(').replace(/[\]}]/g, ')');
+  const toks = []; let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[0-9.,]/.test(ch)) {
+      let j = i; while (j < s.length && /[0-9.,]/.test(s[j])) j++;
+      const raw = s.slice(i, j).replace(',', '.');
+      if (!/^(\d+\.?\d*|\.\d+)$/.test(raw)) throw new Error(`No entiendo el número «${s.slice(i, j)}».`);
+      toks.push({ t: 'num', v: raw }); i = j; continue;
+    }
+    if (ch === 'x' || ch === 'X') { toks.push({ t: 'x' }); i++; continue; }
+    if ('+-*/^()'.includes(ch)) { toks.push({ t: ch }); i++; continue; }
+    throw new Error(`El símbolo «${ch}» no está permitido. Usa solo la variable x, números, + − * / ^ y paréntesis.`);
+  }
+  return toks;
+}
+function parse(str) {
+  const toks = tokenize(str); let pos = 0;
+  if (!toks.length) throw new Error('El campo está vacío.');
+  const peek = () => toks[pos], next = () => toks[pos++];
+  const close = () => { if (!peek() || peek().t !== ')') throw new Error('Falta cerrar un paréntesis.'); next(); };
+  function expr() {
+    const terms = [{ s: 1, n: term() }];
+    while (peek() && (peek().t === '+' || peek().t === '-')) { const op = next().t; terms.push({ s: op === '+' ? 1 : -1, n: term() }); }
+    return terms.length === 1 ? terms[0].n : { k: 'add', terms };
+  }
+  function term() {
+    const fs = [{ op: '*', n: unary() }];
+    while (peek()) {
+      const t = peek().t;
+      if (t === '*' || t === '/') { next(); fs.push({ op: t, n: unary() }); }
+      else if (t === 'num' || t === 'x' || t === '(') fs.push({ op: '*', n: power() });
+      else break;
+    }
+    return fs.length === 1 ? fs[0].n : { k: 'mul', fs };
+  }
+  function unary() {
+    if (peek() && (peek().t === '-' || peek().t === '+')) { const op = next().t; const n = unary(); return op === '-' ? { k: 'neg', n } : n; }
+    return power();
+  }
+  function power() {
+    const b = atom();
+    if (peek() && peek().t === '^') {
+      next(); const t = peek();
+      if (t && t.t === 'num') { next(); return { k: 'pow', b, e: { k: 'num', v: t.v } }; }
+      if (t && t.t === '(') { next(); const e = expr(); close(); return { k: 'pow', b, e }; }
+      throw new Error('Después de ^ debe ir un exponente entero, por ejemplo x^2.');
+    }
+    return b;
+  }
+  function atom() {
+    const t = next();
+    if (!t) throw new Error('La expresión está incompleta.');
+    if (t.t === 'num') return { k: 'num', v: t.v };
+    if (t.t === 'x') return { k: 'x' };
+    if (t.t === '(') { const e = expr(); close(); return { k: 'grp', n: e }; }
+    throw new Error(t.t === ')' ? 'Hay un paréntesis de cierre de más.' : `Falta algo antes de «${t.t}».`);
+  }
+  const tree = expr();
+  if (pos < toks.length) throw new Error(toks[pos].t === ')' ? 'Hay un paréntesis de cierre de más.' : `Sobra «${toks[pos].t === 'num' ? toks[pos].v : toks[pos].t}».`);
+  return tree;
+}
+function numQ(v) {
+  const [a, b = ''] = v.split('.');
+  return new Q(BigInt((a || '0') + b), 10n ** BigInt(b.length));
+}
+function toPoly(n) {
+  switch (n.k) {
+    case 'num': return P.trim([numQ(n.v)]);
+    case 'x': return [Z, ONE];
+    case 'grp': return toPoly(n.n);
+    case 'neg': return P.scale(toPoly(n.n), qq(-1));
+    case 'add': return n.terms.reduce((acc, t) => P.add(acc, t.s < 0 ? P.scale(toPoly(t.n), qq(-1)) : toPoly(t.n)), []);
+    case 'mul': {
+      let r = toPoly(n.fs[0].n);
+      for (const f of n.fs.slice(1)) {
+        const p = toPoly(f.n);
+        if (f.op === '*') r = P.mul(r, p);
+        else {
+          if (P.deg(p) > 0) throw new Error('Dentro de cada campo solo se puede dividir entre números. Escribe el numerador y el denominador por separado.');
+          if (!p.length) throw new Error('Hay una división entre cero.');
+          r = P.scale(r, ONE.div(p[0]));
+        }
+      }
+      return r;
+    }
+    case 'pow': {
+      const e = toPoly(n.e);
+      if (P.deg(e) > 0 || (e.length && (e[0].d !== 1n || e[0].n < 0n))) throw new Error('Los exponentes deben ser enteros no negativos.');
+      const k = e.length ? Number(e[0].n) : 0;
+      if (k > 40) throw new Error('El exponente es demasiado grande.');
+      return P.pow(toPoly(n.b), k);
+    }
+  }
+}
+function astTex(n) {
+  switch (n.k) {
+    case 'num': return n.v;
+    case 'x': return 'x';
+    case 'grp': return '\\left(' + astTex(n.n) + '\\right)';
+    case 'neg': return '-' + astTex(n.n);
+    case 'add': return n.terms.map((t, i) => (i === 0 ? (t.s < 0 ? '-' : '') : (t.s < 0 ? ' - ' : ' + ')) + astTex(t.n)).join('');
+    case 'pow': return astTex(n.b) + '^{' + (n.e.k === 'grp' ? astTex(n.e.n) : astTex(n.e)) + '}';
+    case 'mul': {
+      const join = list => list.map((f, i) => {
+        let t = astTex(f);
+        if (i > 0 && f.k === 'neg') t = '\\left(' + t + '\\right)';
+        return (i > 0 && /^[0-9.]/.test(t) ? ' \\cdot ' : '') + t;
+      }).join('');
+      const top = n.fs.filter(f => f.op === '*').map(f => f.n), bot = n.fs.filter(f => f.op === '/').map(f => f.n);
+      return bot.length ? `\\frac{${top.length ? join(top) : '1'}}{${join(bot)}}` : join(top);
+    }
+  }
+}
+
+/* ----- Polinomios enteros y factorización sobre Q ----- */
+function toIntPrimitive(p) {
+  let L = 1n; for (const a of p) L = L / bgcd(L, a.d) * a.d;
+  let ip = p.map(a => a.n * (L / a.d));
+  let g = 0n; for (const a of ip) g = bgcd(g, a);
+  if (ip[ip.length - 1] < 0n) g = -g;
+  ip = ip.map(a => a / g);
+  return { c: new Q(g, L), ip };
+}
+function idiv(a, b) {
+  const da = a.length - 1, db = b.length - 1; if (da < db) return null;
+  const r = a.slice(), q = Array(da - db + 1).fill(0n), lb = b[db];
+  for (let i = da - db; i >= 0; i--) {
+    const t = r[i + db]; if (t % lb !== 0n) return null;
+    const c = t / lb; q[i] = c;
+    if (c !== 0n) for (let j = 0; j <= db; j++) r[i + j] -= c * b[j];
+  }
+  for (let i = 0; i < db; i++) if (r[i] !== 0n) return null;
+  return q;
+}
+const LIMIT = 10n ** 12n;
+function divisors(n) {
+  n = babs(n);
+  if (n > LIMIT) throw new Error('Los coeficientes son demasiado grandes para factorizar el denominador.');
+  const N = Number(n), res = [];
+  for (let i = 1; i * i <= N; i++) if (N % i === 0) { res.push(i); if (i * i !== N) res.push(N / i); }
+  return res.sort((a, b) => a - b).map(BigInt);
+}
+const ievalAt = (p, t) => { let s = 0n; for (let i = p.length - 1; i >= 0; i--) s = s * t + p[i]; return s; };
+function findQuad(p) {
+  const n = p.length - 1;
+  const p1 = ievalAt(p, 1n), pm1 = ievalAt(p, -1n), p2 = ievalAt(p, 2n);
+  const D = divisors(p[n]), F = divisors(p[0]), S = divisors(p1);
+  let tries = 0;
+  for (const d of D) for (const f0 of F) for (const f of [f0, -f0]) for (const s0 of S) for (const s of [s0, -s0]) {
+    const e = s - d - f;
+    const qm1 = d - e + f; if (qm1 === 0n || pm1 % qm1 !== 0n) continue;
+    const q2 = 4n * d + 2n * e + f; if (q2 === 0n || p2 % q2 !== 0n) continue;
+    if (bgcd(bgcd(d, e), f) !== 1n) continue;
+    if (++tries > 300000) return null;
+    const cand = [f, e, d];
+    if (idiv(p, cand)) return cand;
+  }
+  return null;
+}
+function factorInt(ip) {
+  const lin = [], quad = [];
+  let p = ip.slice();
+  let k0 = 0; while (p.length > 1 && p[0] === 0n) { p.shift(); k0++; }
+  if (k0) lin.push({ ip: [0n, 1n], mult: k0, root: Z });
+  if (p.length >= 2) {
+    const seen = new Set(), cands = [];
+    for (const a of divisors(p[0])) for (const b of divisors(p[p.length - 1])) for (const s of [1n, -1n]) {
+      const r = new Q(s * a, b), key = r.n + '/' + r.d;
+      if (!seen.has(key)) { seen.add(key); cands.push(r); }
+    }
+    cands.sort((x, y) => x.num() - y.num());
+    for (const r of cands) {
+      if (p.length < 2) break;
+      const L = [-r.n, r.d]; let m = 0, q;
+      while (p.length > 1 && (q = idiv(p, L))) { p = q; m++; }
+      if (m) lin.push({ ip: L, mult: m, root: r });
+    }
+  }
+  let leftover = null;
+  while (p.length - 1 >= 2) {
+    const n = p.length - 1;
+    let qf = null;
+    if (n === 2) qf = p.slice();
+    else if (n >= 4) qf = findQuad(p);
+    if (!qf) { leftover = p; break; }
+    let m = 0, q;
+    while (p.length - 1 >= 2 && (q = idiv(p, qf))) { p = q; m++; }
+    quad.push({ ip: qf, mult: m });
+  }
+  const key = r => (r.isZero() ? [-1, 0] : [Math.abs(r.num()), r.sign() > 0 ? 0 : 1]);
+  lin.sort((a, b) => { const ka = key(a.root), kb = key(b.root); return ka[0] - kb[0] || ka[1] - kb[1]; });
+  return { factors: [...lin.map(f => ({ ...f, type: 'lin' })), ...quad.map(f => ({ ...f, type: 'quad' }))], leftover };
+}
+
+/* ----- LaTeX ----- */
+function qTex(c) { return c.d === 1n ? `${c.n}` : `${c.n < 0n ? '-' : ''}\\frac{${babs(c.n)}}{${c.d}}`; }
+function monoTex(c, k) { // c > 0
+  const xk = k === 0 ? '' : k === 1 ? 'x' : `x^{${k}}`;
+  if (k === 0) return c.d === 1n ? `${c.n}` : `\\frac{${c.n}}{${c.d}}`;
+  if (c.d === 1n) return (c.n === 1n ? '' : `${c.n}`) + xk;
+  return `\\frac{${c.n === 1n ? '' : c.n}${xk}}{${c.d}}`;
+}
+function joinTerms(ts) {
+  if (!ts.length) return '0';
+  return ts.map((t, i) => (i === 0 ? (t.s < 0 ? '-' : '') : (t.s < 0 ? ' - ' : ' + ')) + t.t).join('');
+}
+function polyTerms(p) {
+  const ts = [];
+  for (let k = p.length - 1; k >= 0; k--) if (!p[k].isZero()) {
+    const c = p[k], ck = c.abs();
+    ts.push({ s: c.sign(), t: monoTex(ck, k), ev: x => c.num() * x ** k });
+  }
+  return ts;
+}
+const polyTex = p => joinTerms(polyTerms(p));
+const ipolyTex = ip => polyTex(ip.map(a => new Q(a)));
+function coefPrefix(c) { return c.n === 1n && c.d === 1n ? '' : c.d === 1n ? `${c.n}` : `\\frac{${c.n}}{${c.d}}`; }
+function facTex(f, k, paren) {
+  if (k === 0) return '';
+  const base = (!f.mono && (paren || k > 1)) ? `(${f.tex})` : f.tex;
+  return k > 1 ? `${base}^{${k}}` : base;
+}
+function denTex(L, f, k) { return (L === 1n ? '' : `${L}`) + facTex(f, k, L !== 1n); }
+function linTerm(A, f, k) { // A / f^k
+  const a = A.abs();
+  return { s: A.sign(), t: `\\frac{${a.n}}{${denTex(a.d, f, k)}}`, ev: x => A.num() / P.eval(f.P, x) ** k };
+}
+function quadTerm(B, C, f, k) { // (Bx + C) / f^k
+  const L = B.d / bgcd(B.d, C.d) * C.d;
+  let b = B.n * (L / B.d), c = C.n * (L / C.d), s = 1;
+  if (b < 0n || (b === 0n && c < 0n)) { b = -b; c = -c; s = -1; }
+  const numTex = ipolyTex([c, b]);
+  return { s, t: `\\frac{${numTex}}{${denTex(L, f, k)}}`, ev: x => (B.num() * x + C.num()) / P.eval(f.P, x) ** k };
+}
+function sqrtSplit(n) { // n > 0 BigInt → {m, s} with n = m^2 s, s squarefree
+  let m = 1n, s = n;
+  for (let i = 2n; i * i <= s; i++) while (s % (i * i) === 0n) { s /= i * i; m *= i; }
+  return { m, s };
+}
+function surdCoef(K, s) { // |K|·√s  (K > 0)
+  if (s === 1n) return coefPrefix(K);
+  const top = (K.n === 1n ? '' : `${K.n}`) + `\\sqrt{${s}}`;
+  return K.d === 1n ? top : `\\frac{${top}}{${K.d}}`;
+}
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const letter = i => (i < 26 ? LETTERS[i] : `A_{${i - 25}}`);
+
+/* ----- Cálculo principal ----- */
+function analyze(numStr, denStr) {
+  const nAst = parse(numStr), dAst = parse(denStr);
+  const N = toPoly(nAst), D = toPoly(dAst);
+  if (!D.length) throw new Error('El denominador es 0.');
+  if (P.deg(D) < 1) throw new Error('El denominador debe contener a x (grado al menos 1).');
+  if (P.deg(D) > 16) throw new Error('El denominador tiene grado mayor que 16; prueba con un ejemplo más pequeño.');
+  if (!N.length) throw new Error('El numerador es 0, así que la función es 0.');
+  const res = { nAst, dAst, N, D, fTex: `\\frac{${astTex(nAst)}}{${astTex(dAst)}}` };
+  const { q: Qp, r: R } = P.divmod(N, D);
+  res.improper = P.deg(N) >= P.deg(D);
+  res.Qp = Qp; res.R = R;
+  res.exact = R.length === 0;
+  if (!res.exact) {
+    const { c, ip } = toIntPrimitive(D);
+    const fz = factorInt(ip);
+    if (fz.leftover) {
+      const err = new Error('factor');
+      err.leftoverTex = ipolyTex(fz.leftover); err.kind = 'irreducible';
+      throw err;
+    }
+    // constante: D = c · ip,  ip = Π f^m
+    res.c = c;
+    const facs = fz.factors.map(f => {
+      const Pf = f.ip.map(a => new Q(a));
+      const tex = ipolyTex(f.ip);
+      return { ...f, P: Pf, tex, mono: tex === 'x' };
+    });
+    res.facs = facs;
+    // incógnitas y base
+    const unk = [], basis = [];
+    facs.forEach((f, fi) => {
+      for (let k = 1; k <= f.mult; k++) {
+        let prod = [ONE];
+        facs.forEach((g, gi) => { prod = P.mul(prod, P.pow(g.P, gi === fi ? g.mult - k : g.mult)); });
+        prod = P.scale(prod, c);
+        if (f.type === 'lin') { unk.push({ fi, k, role: 'c' }); basis.push(prod); }
+        else { unk.push({ fi, k, role: 'x' }); basis.push(P.mul([Z, ONE], prod)); unk.push({ fi, k, role: 'c' }); basis.push(prod); }
+      }
+    });
+    unk.forEach((u, i) => { u.name = letter(i); });
+    const n = P.deg(D);
+    const M = [], rhs = [];
+    for (let r = 0; r < n; r++) { M.push(basis.map(b => b[r] || Z)); rhs.push(R[r] || Z); }
+    const sol = solve(M, rhs);
+    unk.forEach((u, i) => { u.val = sol[i]; });
+    res.unk = unk; res.M = M; res.rhs = rhs;
+  }
+  buildTex(res);
+  return res;
+}
+function solve(M, b) {
+  const n = b.length, A = M.map((r, i) => [...r, b[i]]);
+  for (let col = 0; col < n; col++) {
+    let piv = -1; for (let i = col; i < n; i++) if (!A[i][col].isZero()) { piv = i; break; }
+    if (piv < 0) throw new Error('No se pudo resolver el sistema.');
+    [A[col], A[piv]] = [A[piv], A[col]];
+    const pv = A[col][col];
+    for (let j = col; j <= n; j++) A[col][j] = A[col][j].div(pv);
+    for (let i = 0; i < n; i++) if (i !== col && !A[i][col].isZero()) {
+      const f = A[i][col];
+      for (let j = col; j <= n; j++) A[i][j] = A[i][j].sub(f.mul(A[col][j]));
+    }
+  }
+  return A.map(r => r[n]);
+}
+function linComb(coefs, names) {
+  const ts = [];
+  coefs.forEach((c, i) => { if (!c.isZero()) ts.push({ s: c.sign(), t: coefPrefix(c.abs()) + names[i] }); });
+  return joinTerms(ts);
+}
+function buildTex(res) {
+  const T = res.tex = {};
+  T.D = polyTex(res.D);
+  T.N = polyTex(res.N);
+  if (res.improper) { T.Q = polyTex(res.Qp); T.R = polyTex(res.R); }
+  const polyPart = polyTerms(res.Qp);
+  if (res.exact) {
+    res.decomp = polyPart;
+    res.integral = integrate(res);
+    return;
+  }
+  const { facs, unk, c } = res;
+  // factorización
+  const many = facs.length > 1 || !(c.n === 1n && c.d === 1n);
+  const cPre = (c.n === 1n && c.d === 1n) ? '' : (c.n === -1n && c.d === 1n) ? '-' : qTex(c);
+  T.factored = cPre + facs.map(f => facTex(f, f.mult, many)).join('');
+  T.irrQuads = facs.filter(f => f.type === 'quad' && (f.ip[1] * f.ip[1] - 4n * f.ip[2] * f.ip[0]) > 0n).map(f => f.tex);
+  // forma general
+  const form = [];
+  const byFK = {};
+  unk.forEach(u => { (byFK[u.fi + ':' + u.k] = byFK[u.fi + ':' + u.k] || []).push(u); });
+  facs.forEach((f, fi) => {
+    for (let k = 1; k <= f.mult; k++) {
+      const us = byFK[fi + ':' + k];
+      const top = f.type === 'lin' ? us[0].name : `${us[0].name}x + ${us[1].name}`;
+      form.push({ s: 1, t: `\\frac{${top}}{${facTex(f, k, false)}}` });
+    }
+  });
+  res.form = form;
+  // identidad
+  const ident = [];
+  facs.forEach((f, fi) => {
+    for (let k = 1; k <= f.mult; k++) {
+      const us = byFK[fi + ':' + k];
+      const prod = facs.map((g, gi) => facTex(g, gi === fi ? g.mult - k : g.mult, true)).join('');
+      const head = f.type === 'lin' ? us[0].name : (prod ? `(${us[0].name}x + ${us[1].name})` : `${us[0].name}x + ${us[1].name}`);
+      ident.push({ s: 1, t: head + prod });
+    }
+  });
+  res.ident = ident;
+  T.cPre = cPre;
+  // sistema
+  const names = unk.map(u => u.name);
+  const rows = [];
+  for (let r = res.M.length - 1; r >= 0; r--) {
+    rows.push(`x^{${r}} &:\\quad ${linComb(res.M[r], names)} = ${qTex(res.rhs[r])}`);
+  }
+  T.system = `\\begin{aligned}${rows.join(' \\\\ ')}\\end{aligned}`;
+  // descomposición
+  const dec = [...polyPart];
+  facs.forEach((f, fi) => {
+    for (let k = 1; k <= f.mult; k++) {
+      const us = byFK[fi + ':' + k];
+      if (f.type === 'lin') { if (!us[0].val.isZero()) dec.push(linTerm(us[0].val, f, k)); }
+      else if (!us[0].val.isZero() || !us[1].val.isZero()) dec.push(quadTerm(us[0].val, us[1].val, f, k));
+    }
+  });
+  res.decomp = dec;
+  res.integral = integrate(res, byFK);
+}
+function integrate(res, byFK) {
+  const out = [];
+  // parte polinómica
+  for (let i = res.Qp.length - 1; i >= 0; i--) if (!res.Qp[i].isZero()) {
+    const c = res.Qp[i].div(qq(i + 1)), k = i + 1;
+    out.push({ s: c.sign(), t: monoTex(c.abs(), k), ev: x => c.num() * x ** k });
+  }
+  if (res.exact) return out;
+  res.facs.forEach((f, fi) => {
+    if (f.type === 'lin') {
+      const a = new Q(f.ip[1]);
+      let logC = Z; const rat = {};
+      for (let k = 1; k <= f.mult; k++) {
+        const A = byFK[fi + ':' + k][0].val;
+        if (k === 1) logC = A.div(a);
+        else rat[k - 1] = A.neg().div(a.mul(qq(k - 1)));
+      }
+      if (!logC.isZero()) {
+        const K = logC;
+        out.push({ s: K.sign(), t: `${coefPrefix(K.abs())}\\ln\\left|${f.tex}\\right|`, ev: x => K.num() * Math.log(Math.abs(P.eval(f.P, x))) });
+      }
+      Object.keys(rat).map(Number).sort((a, b) => a - b).forEach(j => { if (!rat[j].isZero()) out.push(linTerm(rat[j], f, j)); });
+    } else {
+      const [c0, b0, a0] = f.ip, a = new Q(a0), b = new Q(b0);
+      const Delta = b0 * b0 - 4n * a0 * c0, negD = new Q(-Delta);
+      const twoA = a.mul(qq(2));
+      // I_k = Σ_j u_j (2ax+b)/q^j + w·I_1
+      const I = [null, { u: {}, w: ONE }];
+      for (let k = 2; k <= f.mult; k++) {
+        const u = {}, prev = I[k - 1];
+        const g = qq(2 * (2 * k - 3)).mul(a).div(qq(k - 1).mul(negD));
+        u[k - 1] = ONE.div(qq(k - 1).mul(negD));
+        for (const j in prev.u) u[j] = (u[j] || Z).add(g.mul(prev.u[j]));
+        I.push({ u, w: g.mul(prev.w) });
+      }
+      let logC = Z, W = Z; const al = {}, be = {};
+      for (let k = 1; k <= f.mult; k++) {
+        const [uB, uC] = byFK[fi + ':' + k];
+        const B = uB.val, C = uC.val;
+        const h = B.div(twoA), E = C.sub(B.mul(b).div(twoA));
+        if (k === 1) logC = logC.add(h);
+        else be[k - 1] = (be[k - 1] || Z).add(h.div(qq(1 - k)));
+        for (const j in I[k].u) {
+          const uj = I[k].u[j].mul(E);
+          al[j] = (al[j] || Z).add(uj.mul(twoA));
+          be[j] = (be[j] || Z).add(uj.mul(b));
+        }
+        W = W.add(E.mul(I[k].w));
+      }
+      if (!logC.isZero()) {
+        const K = logC, bars = Delta < 0n;
+        out.push({ s: K.sign(), t: `${coefPrefix(K.abs())}\\ln${bars ? `\\left(${f.tex}\\right)` : `\\left|${f.tex}\\right|`}`, ev: x => K.num() * Math.log(Math.abs(P.eval(f.P, x))) });
+      }
+      if (!W.isZero()) {
+        const { m, s } = sqrtSplit(babs(Delta));
+        const g = bgcd(bgcd(2n * a0, b0), m);
+        const lin = ipolyTex([b0 / g, 2n * a0 / g]), mm = m / g;
+        const root = s === 1n ? `${mm}` : `${mm === 1n ? '' : mm}\\sqrt{${s}}`;
+        const sq = Math.sqrt(Number(s)), mN = Number(m), A2 = 2 * Number(a0), B0 = Number(b0);
+        if (Delta < 0n) {
+          const K = W.mul(qq(2)).div(new Q(m * s));
+          const arg = s === 1n && mm === 1n ? lin : `\\frac{${lin}}{${root}}`;
+          const atx = arg === 'x' ? '\\arctan x' : `\\arctan\\left(${arg}\\right)`;
+          out.push({ s: K.sign(), t: `${surdCoef(K.abs(), s)}${atx}`, ev: x => K.num() * sq * Math.atan((A2 * x + B0) / (mN * sq)) });
+        } else {
+          const K = W.div(new Q(m * s));
+          out.push({ s: K.sign(), t: `${surdCoef(K.abs(), s)}\\ln\\left|\\frac{${lin} - ${root}}{${lin} + ${root}}\\right|`, ev: x => K.num() * sq * Math.log(Math.abs((A2 * x + B0 - mN * sq) / (A2 * x + B0 + mN * sq))) });
+        }
+      }
+      Object.keys(be).concat(Object.keys(al)).map(Number).filter((v, i, arr) => arr.indexOf(v) === i).sort((x, y) => x - y).forEach(j => {
+        const A = al[j] || Z, B = be[j] || Z;
+        if (!A.isZero() || !B.isZero()) out.push(quadTerm(A, B, f, j));
+      });
+    }
+  });
+  return out;
+}
+function verify(res) {
+  const f = x => P.eval(res.N, x) / P.eval(res.D, x);
+  const pts = [0.37, -2.41, 1.73, 3.19, -0.83, 5.6, -4.3, 0.12];
+  let checked = 0;
+  for (const x of pts) {
+    const dx = P.eval(res.D, x);
+    if (Math.abs(dx) < 1e-3) continue;
+    const fv = f(x);
+    const dv = res.decomp.reduce((s, t) => s + t.ev(x), 0);
+    const h = 1e-5;
+    const F = y => res.integral.reduce((s, t) => s + t.ev(y), 0);
+    const dF = (F(x + h) - F(x - h)) / (2 * h);
+    const tol = 1e-5 * Math.max(1, Math.abs(fv));
+    if (Math.abs(dv - fv) > tol) return { ok: false, what: 'decomp', x };
+    if (Math.abs(dF - fv) > 1e-3 * Math.max(1, Math.abs(fv))) return { ok: false, what: 'integral', x };
+    checked++;
+  }
+  return { ok: checked > 0, checked };
+}
+
+/* ===== Interfaz ===== */
+const $ = s => document.querySelector(s);
+const numEl = $('#num'), denEl = $('#den'), out = $('#out'), prevEl = $('#preview');
+const MJ = window.__mj;
+
+function paint(el) {
+  const tex = el.dataset.tex;
+  if (MJ.ready) {
+    try {
+      el.replaceChildren(MathJax.tex2svg('\\displaystyle ' + tex, { display: false }));
+      el.classList.remove('raw');
+      return;
+    } catch (e) { /* cae al texto */ }
+  }
+  if (MJ.failed || MJ.ready) { el.textContent = tex; el.classList.add('raw'); }
+}
+window.paintAll = () => document.querySelectorAll('[data-tex]').forEach(paint);
+setTimeout(() => { if (!MJ.ready) { MJ.failed = true; window.paintAll(); } }, 9000);
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function mathBlock(tex) { const d = el('div', 'math'); d.dataset.tex = tex; paint(d); return d; }
+function mathInline(tex) { const s = el('span', 'mi'); s.dataset.tex = tex; paint(s); return s; }
+function para(parts, cls) {
+  const p = el('p', cls);
+  for (const part of parts) p.append(typeof part === 'string' ? document.createTextNode(part) : mathInline(part.tex));
+  return p;
+}
+function perLine() { return window.innerWidth < 600 ? 2 : 3; }
+function sumTex(lhs, terms, tail) {
+  const per = perLine();
+  const groups = [];
+  for (let i = 0; i < terms.length; i += per) groups.push(terms.slice(i, i + per));
+  if (!groups.length) groups.push([]);
+  if (tail) groups[groups.length - 1].push({ s: 1, t: tail });
+  if (groups.length === 1) return `${lhs} = ${joinTerms(groups[0])}`;
+  const lines = groups.map((g, gi) => {
+    const body = g.map((t, j) => (gi === 0 && j === 0) ? (t.s < 0 ? '-' : '') + t.t : (t.s < 0 ? ' - ' : ' + ') + t.t).join('');
+    return gi === 0 ? `${lhs} &= ${body}` : `&\\quad${body}`;
+  });
+  return `\\begin{aligned}${lines.join(' \\\\[0.7em] ')}\\end{aligned}`;
+}
+function step(title, ...children) {
+  const li = el('li', 'step');
+  li.append(el('h3', null, title));
+  for (const c of children) if (c) li.append(typeof c === 'string' ? el('p', null, c) : c);
+  return li;
+}
+async function copyText(txt, btn) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    ta.remove();
+  }
+  btn.textContent = ok ? 'Copiado' : 'No se pudo copiar';
+  setTimeout(() => { btn.textContent = 'Copiar LaTeX'; }, 1600);
+}
+function copyBtn(txt) { const b = el('button', 'copy', 'Copiar LaTeX'); b.type = 'button'; b.addEventListener('click', () => copyText(txt, b)); return b; }
+
+function showError(title, parts) {
+  const box = el('div', 'error');
+  box.append(el('h3', null, title), para(parts));
+  out.replaceChildren(box);
+}
+
+let last = null;
+function run() {
+  const n = numEl.value.trim(), d = denEl.value.trim();
+  if (!n || !d) { showError('Faltan datos', ['Escribe el numerador y el denominador.']); return; }
+  try { parse(n); } catch (e) { showError('Revisa el numerador', [e.message]); return; }
+  try { parse(d); } catch (e) { showError('Revisa el denominador', [e.message]); return; }
+  let res;
+  try { res = analyze(n, d); } catch (e) {
+    if (e.kind === 'irreducible') showError('Este denominador no se puede trabajar aquí', ['El denominador contiene el factor ', { tex: e.leftoverTex }, ', que no tiene raíces racionales ni se separa en factores cuadráticos con coeficientes racionales. Prueba con un denominador que se factorice en lineales y cuadráticos con coeficientes racionales.']);
+    else showError('No se pudo calcular', [e.message]);
+    return;
+  }
+  last = res;
+  render(res);
+}
+
+function render(res) {
+  const T = res.tex;
+  const h = el('h2', null, 'Paso a paso');
+  const ol = el('ol', 'steps');
+  ol.append(step('La función', mathBlock(`f(x) = ${res.fTex}`)));
+
+  if (res.improper) {
+    const dn = P.deg(res.N), dd = P.deg(res.D);
+    if (res.exact) {
+      ol.append(step('División', `El grado del numerador (${dn}) es mayor o igual que el del denominador (${dd}). La división es exacta, así que f(x) es un polinomio y no hay nada que descomponer.`, mathBlock(`f(x) = ${T.Q}`)));
+    } else {
+      ol.append(step('División', `El grado del numerador (${dn}) es mayor o igual que el del denominador (${dd}), así que primero se divide: cociente más residuo sobre divisor.`, mathBlock(`f(x) = ${T.Q} + \\frac{${T.R}}{${T.D}}`)));
+    }
+  }
+
+  if (!res.exact) {
+    const Rtex = res.improper ? T.R : T.N;
+    // Factorización
+    const fac = step('Factorización del denominador',
+      T.factored === T.D ? 'El denominador ya no se puede factorizar más.' : null,
+      mathBlock(T.factored === T.D ? T.D : `${T.D} = ${T.factored}`));
+    for (const q of T.irrQuads) {
+      fac.append(para(['El factor ', { tex: q }, ' tiene raíces irracionales. Se conserva como factor cuadrático con coeficientes racionales; por eso en la integral aparece un logaritmo en lugar de un arcotangente.']));
+    }
+    ol.append(fac);
+
+    // Planteamiento
+    const hasQuad = res.facs.some(f => f.type === 'quad'), hasLin = res.facs.some(f => f.type === 'lin');
+    const rule = hasLin && hasQuad
+      ? 'Va una fracción por cada potencia de cada factor: una constante sobre los factores lineales y un numerador de la forma Bx + C sobre los cuadráticos.'
+      : hasQuad ? 'Va una fracción por cada potencia de cada factor cuadrático, con numerador de la forma Bx + C.'
+      : 'Va una fracción por cada potencia de cada factor lineal, con una constante en el numerador.';
+    const identTex = T.cPre ? `${Rtex} = ${T.cPre}\\left[${joinTerms(res.ident)}\\right]` : sumTex(Rtex, res.ident);
+    const det = el('details');
+    det.append(el('summary', null, 'Ver el sistema que resulta al igualar coeficientes'), mathBlock(T.system));
+    ol.append(step('Planteamiento', rule,
+      mathBlock(sumTex(`\\frac{${Rtex}}{${T.factored}}`, res.form)),
+      el('p', null, 'Al multiplicar ambos lados por el denominador queda la identidad:'),
+      mathBlock(identTex), det));
+
+    // Constantes
+    const cs = el('div', 'consts');
+    for (const u of res.unk) { const box = el('div', 'const'); box.append(mathInline(`${u.name} = ${qTex(u.val)}`)); cs.append(box); }
+    ol.append(step('Valores de las constantes', cs));
+
+    // Descomposición
+    const dec = step('Descomposición en fracciones parciales', mathBlock(sumTex('f(x)', res.decomp)));
+    dec.classList.add('result');
+    const tools = el('div', 'tools'); tools.append(copyBtn(`${res.fTex} = ${joinTerms(res.decomp)}`));
+    dec.append(tools);
+    ol.append(dec);
+  }
+
+  // Integral
+  const integ = step('Integral', mathBlock(sumTex('\\int f(x)\\,dx', res.integral, 'C')));
+  integ.classList.add('result');
+  const tools = el('div', 'tools');
+  tools.append(copyBtn(`\\int ${res.fTex}\\,dx = ${joinTerms(res.integral)} + C`));
+  const v = verify(res);
+  tools.append(el('span', v.ok ? 'check' : 'check bad', v.ok ? '✓ Comprobado: al derivar se recupera f(x).' : 'La comprobación numérica no coincidió; revisa el resultado.'));
+  integ.append(tools);
+  if (!res.exact) integ.append(formulas());
+  ol.append(integ);
+
+  out.replaceChildren(h, ol);
+}
+
+function formulas() {
+  const d = el('details', 'formulas');
+  d.append(el('summary', null, 'Fórmulas que se usan en cada tipo de término'));
+  d.append(el('p', null, 'Factores lineales:'));
+  d.append(mathBlock('\\int \\frac{dx}{ax+b} = \\frac{1}{a}\\ln\\left|ax+b\\right| + C'));
+  d.append(mathBlock('\\int \\frac{dx}{(ax+b)^{k}} = -\\frac{1}{a(k-1)(ax+b)^{k-1}} + C,\\qquad k\\ge 2'));
+  d.append(el('p', null, 'Factores cuadráticos q(x) = ax² + bx + c: el numerador se separa en un múltiplo de la derivada de q más una constante.'));
+  d.append(mathBlock('\\frac{Mx+N}{q(x)} = \\frac{M}{2a}\\cdot\\frac{2ax+b}{q(x)} + \\left(N-\\frac{Mb}{2a}\\right)\\frac{1}{q(x)}'));
+  d.append(mathBlock('\\int \\frac{2ax+b}{q(x)}\\,dx = \\ln\\left|q(x)\\right| + C'));
+  d.append(mathBlock('\\int \\frac{dx}{q(x)} = \\frac{2}{\\sqrt{4ac-b^{2}}}\\arctan\\left(\\frac{2ax+b}{\\sqrt{4ac-b^{2}}}\\right) + C,\\qquad b^{2}-4ac<0'));
+  d.append(el('p', null, 'Para potencias de q se usa la fórmula de reducción:'));
+  d.append(mathBlock('\\int \\frac{dx}{q^{k}} = \\frac{2ax+b}{(k-1)(4ac-b^{2})\\,q^{k-1}} + \\frac{2(2k-3)\\,a}{(k-1)(4ac-b^{2})}\\int \\frac{dx}{q^{k-1}}'));
+  return d;
+}
+
+/* Vista previa mientras se escribe */
+let pvTimer = null;
+function updatePreview() {
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(() => {
+    const n = numEl.value.trim(), d = denEl.value.trim();
+    if (!n || !d) { prevEl.replaceChildren(); return; }
+    try {
+      const a = parse(n), b = parse(d);
+      prevEl.replaceChildren(mathInline(`f(x) = \\frac{${astTex(a)}}{${astTex(b)}}`));
+    } catch (e) {
+      prevEl.replaceChildren(el('span', 'note bad', e.message));
+    }
+  }, 160);
+}
+
+/* Ejemplos */
+const EXAMPLES = [
+  { label: 'Lineales distintos', n: 'x + 5', d: 'x^2 + x - 2' },
+  { label: 'Tres factores lineales', n: 'x^2 + 2x - 1', d: '2x^3 + 3x^2 - 2x' },
+  { label: 'Lineal repetido', n: '1', d: 'x(x + 1)^2' },
+  { label: 'Impropia', n: 'x^4 - 2x^2 + 4x + 1', d: 'x^3 - x^2 - x + 1' },
+  { label: 'Cuadrático irreducible', n: '2x^2 - x + 4', d: 'x^3 + 4x' },
+  { label: 'Completar el cuadrado', n: '2x + 3', d: 'x^2 + 2x + 5' },
+  { label: 'Lineal y cuadrático', n: '3x^2 - 4x + 5', d: '(x - 1)(x^2 + 1)' },
+  { label: 'Cuadrático repetido', n: '1 - x + 2x^2 - x^3', d: 'x(x^2 + 1)^2' },
+  { label: 'Raíces irracionales', n: '1', d: 'x^2 - 2' },
+];
+const chipsEl = $('#chips');
+const chipBtns = EXAMPLES.map((ex, i) => {
+  const b = el('button', 'chip'); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+  b.append(el('b', null, ex.label), el('span', null, `(${ex.n}) / (${ex.d})`));
+  b.addEventListener('click', () => {
+    numEl.value = ex.n; denEl.value = ex.d;
+    markChip(i); updatePreview(); run();
+    const top = out.getBoundingClientRect().top;
+    if (top > window.innerHeight - 120) out.scrollIntoView({ block: 'start' });
+  });
+  chipsEl.append(b);
+  return b;
+});
+function markChip(i) { chipBtns.forEach((b, j) => b.setAttribute('aria-pressed', String(i === j))); }
+
+for (const f of [numEl, denEl]) {
+  f.addEventListener('input', () => { markChip(-1); updatePreview(); });
+  f.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+}
+$('#go').addEventListener('click', run);
+let rw = window.innerWidth;
+window.addEventListener('resize', () => {
+  if ((rw < 600) !== (window.innerWidth < 600) && last) render(last);
+  rw = window.innerWidth;
+});
+
+// Arranque con un ejemplo
+numEl.value = EXAMPLES[6].n; denEl.value = EXAMPLES[6].d; markChip(6);
+updatePreview(); run();
+</script>
+</body>
+</html>
