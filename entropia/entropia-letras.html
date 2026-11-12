@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entropía de un texto — frecuencia de letras</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    --series-1-soft: #cde2fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface-1: #1a1a19;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-1-soft: #104281;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.35rem; margin: 0 0 4px; }
+  .sub { color: var(--text-secondary); font-size: 0.92rem; margin: 0 0 20px; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    resize: vertical;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    border: 1px solid var(--baseline);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  textarea:focus { outline: 2px solid var(--series-1); outline-offset: 1px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 0; }
+  button {
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--baseline);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--series-1); }
+  button.primary {
+    background: var(--series-1);
+    border-color: var(--series-1);
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .opts { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 0.9rem; color: var(--text-secondary); }
+  .opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .tile .label { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 2px; }
+  .tile .value { font-size: 1.5rem; font-weight: 650; }
+  .tile .unit { font-size: 0.8rem; color: var(--muted); font-weight: 400; margin-left: 2px; }
+  h2 { font-size: 1.02rem; margin: 0 0 10px; }
+  .freq-head, .freq-row {
+    display: grid;
+    grid-template-columns: 2.2em 1fr 4.5em 4.8em;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.88rem;
+  }
+  .freq-head { color: var(--muted); font-size: 0.78rem; padding-bottom: 6px; border-bottom: 1px solid var(--grid); margin-bottom: 6px; }
+  .freq-row { padding: 2px 0; border-radius: 6px; }
+  .freq-row:hover { background: color-mix(in srgb, var(--series-1) 10%, transparent); }
+  .sym { font-weight: 600; text-align: center; }
+  .bar-track { height: 14px; position: relative; }
+  .bar {
+    height: 100%;
+    background: var(--series-1);
+    border-radius: 0 4px 4px 0;
+    min-width: 2px;
+  }
+  .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .note { font-size: 0.85rem; color: var(--text-secondary); }
+  .note code { font-family: ui-monospace, monospace; font-size: 0.85em; }
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+  .hist-table th { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.78rem; border-bottom: 1px solid var(--grid); padding: 4px 8px 6px; }
+  .hist-table td { padding: 5px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  .hist-table td:nth-child(n+2) { text-align: right; }
+  .empty { color: var(--muted); font-size: 0.88rem; }
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--text-primary);
+    color: var(--page);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    z-index: 10;
+    display: none;
+    max-width: 240px;
+  }
+  details summary { cursor: pointer; color: var(--text-secondary); font-size: 0.9rem; }
+  .formula { text-align: center; font-size: 1.05rem; margin: 10px 0; font-family: Georgia, serif; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Entropía de un texto por frecuencia de letras</h1>
+  <p class="sub">Aproximación de primer orden (unigramas): <span style="font-style:italic">H₁ = −Σ pᵢ·log₂ pᵢ</span>, con pᵢ la frecuencia relativa de cada símbolo.</p>
+
+  <div class="card">
+    <textarea id="texto" placeholder="Pega aquí un texto en cualquier idioma…" spellcheck="false"></textarea>
+    <div class="row">
+      <button class="primary" id="btn-calc">Calcular entropía</button>
+      <button id="btn-es">Cargar clásico en español (Quijote)</button>
+      <button id="btn-en">Cargar clásico en inglés (Austen)</button>
+      <button id="btn-clear">Limpiar</button>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="opt-space"> Contar el espacio como símbolo</label>
+      <label><input type="checkbox" id="opt-fold" checked> Plegar tildes y diéresis (á→a, ü→u; la ñ se conserva)</label>
+    </div>
+  </div>
+
+  <div id="resultados" style="display:none">
+    <div class="tiles" style="margin-bottom:16px">
+      <div class="tile"><div class="label">Entropía H₁</div><div class="value"><span id="r-h">–</span><span class="unit">bits/símbolo</span></div></div>
+      <div class="tile"><div class="label">Máximo H₀ = log₂ k</div><div class="value"><span id="r-h0">–</span><span class="unit">bits</span></div></div>
+      <div class="tile"><div class="label">Redundancia 1 − H₁/H₀</div><div class="value"><span id="r-red">–</span><span class="unit">%</span></div></div>
+      <div class="tile"><div class="label">Símbolos: total N / distintos k</div><div class="value"><span id="r-n">–</span></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Frecuencia de cada símbolo</h2>
+      <div class="freq-head"><div style="text-align:center">s</div><div></div><div style="text-align:right">pᵢ (%)</div><div style="text-align:right">−pᵢlog₂pᵢ</div></div>
+      <div id="freq-list"></div>
+      <p class="note" style="margin-bottom:0">La última columna es el aporte de cada símbolo a H₁; la suma de esa columna es exactamente la entropía. Pasa el cursor sobre una fila para ver el detalle.</p>
+    </div>
+
+    <div class="card">
+      <h2>Comparación de textos calculados</h2>
+      <table class="hist-table" id="hist">
+        <thead><tr><th>Texto</th><th>N</th><th>k</th><th>H₁ (bits)</th><th>H₀ (bits)</th><th>Redundancia</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="empty" id="hist-empty">Cada cálculo se agrega aquí, para comparar idiomas lado a lado.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Qué estamos midiendo exactamente? (nota metodológica)</summary>
+      <div class="note" style="margin-top:10px">
+        <p class="formula">H₁ = −Σᵢ pᵢ log₂ pᵢ</p>
+        <p><strong>1.</strong> Se pasa el texto a minúsculas y se conservan solo letras (cualquier alfabeto Unicode) y, si lo eliges, el espacio (mostrado como ␣). Puntuación y dígitos se descartan.</p>
+        <p><strong>2.</strong> <em>H₁</em> es la entropía de la distribución de unigramas: supone que cada letra se genera de forma independiente. Es la primera de las aproximaciones <em>F₀, F₁, F₂, …</em> de Shannon (1951); la entropía real del lenguaje es el límite <em>Fₙ</em> cuando n→∞, y es mucho menor que H₁ porque las letras están fuertemente correlacionadas (en español, después de «q» casi siempre viene «u»).</p>
+        <p><strong>3.</strong> <em>H₀ = log₂ k</em> es la entropía máxima posible con los k símbolos observados (distribución uniforme). Referencias: log₂ 26 ≈ 4.70 (inglés), log₂ 27 ≈ 4.75 (español con ñ). La <em>redundancia</em> 1 − H₁/H₀ mide cuánto se aleja el idioma del uso «parejo» de su alfabeto, solo al nivel de frecuencias de letras.</p>
+        <p><strong>4.</strong> Con textos cortos la estimación sufre sesgo: H₁ se subestima (sesgo de máxima verosimilitud, de orden (k−1)/(2N ln 2)). Para frecuencias estables conviene N ≳ 1000 letras.</p>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+const TEXTO_ES = `En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor. Una olla de algo más vaca que carnero, salpicón las más noches, duelos y quebrantos los sábados, lantejas los viernes, algún palomino de añadidura los domingos, consumían las tres partes de su hacienda. El resto della concluían sayo de velarte, calzas de velludo para las fiestas, con sus pantuflos de lo mesmo, y los días de entresemana se honraba con su vellorí de lo más fino. Tenía en su casa una ama que pasaba de los cuarenta y una sobrina que no llegaba a los veinte, y un mozo de campo y plaza que así ensillaba el rocín como tomaba la podadera. Frisaba la edad de nuestro hidalgo con los cincuenta años; era de complexión recia, seco de carnes, enjuto de rostro, gran madrugador y amigo de la caza. Quieren decir que tenía el sobrenombre de Quijada, o Quesada, que en esto hay alguna diferencia en los autores que deste caso escriben; aunque por conjeturas verosímiles se deja entender que se llamaba Quijana. Pero esto importa poco a nuestro cuento: basta que en la narración dél no se salga un punto de la verdad.
+
+En resolución, él se enfrascó tanto en su lectura, que se le pasaban las noches leyendo de claro en claro, y los días de turbio en turbio; y así, del poco dormir y del mucho leer, se le secó el celebro de manera que vino a perder el juicio. Llenósele la fantasía de todo aquello que leía en los libros, así de encantamentos como de pendencias, batallas, desafíos, heridas, requiebros, amores, tormentas y disparates imposibles; y asentósele de tal modo en la imaginación que era verdad toda aquella máquina de aquellas soñadas invenciones que leía, que para él no había otra historia más cierta en el mundo.`;
+
+const TEXTO_EN = `It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife. However little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered as the rightful property of some one or other of their daughters.
+
+"My dear Mr. Bennet," said his lady to him one day, "have you heard that Netherfield Park is let at last?" Mr. Bennet replied that he had not. "But it is," returned she; "for Mrs. Long has just been here, and she told me all about it." Mr. Bennet made no answer. "Do you want to know who has taken it?" cried his wife impatiently. "You want to tell me, and I have no objection to hearing it." This was invitation enough.
+
+"Why, my dear, you must know, Mrs. Long says that Netherfield is taken by a young man of large fortune from the north of England; that he came down on Monday in a chaise and four to see the place, and was so much delighted with it that he agreed with Mr. Morris immediately; that he is to take possession before Michaelmas, and some of his servants are to be in the house by the end of next week."`;
+
+let ultimoCargado = null;
+
+function normalizar(texto, foldAccents, incluirEspacio) {
+  let t = texto.toLowerCase().normalize("NFC");
+  const simbolos = [];
+  for (const ch of t) {
+    if (/\p{L}/u.test(ch)) {
+      let c = ch;
+      if (foldAccents && c !== "ñ") {
+        c = c.normalize("NFD").replace(/\p{M}/gu, "");
+        if (!/\p{L}/u.test(c)) continue;
+      }
+      simbolos.push(c);
+    } else if (incluirEspacio && /\s/.test(ch)) {
+      simbolos.push(" ");
+    }
+  }
+  return simbolos;
+}
+
+function calcular() {
+  const texto = document.getElementById("texto").value;
+  const fold = document.getElementById("opt-fold").checked;
+  const esp = document.getElementById("opt-space").checked;
+  const simbolos = normalizar(texto, fold, esp);
+  const N = simbolos.length;
+  if (N === 0) { alert2("No hay letras en el texto."); return; }
+
+  const counts = new Map();
+  for (const s of simbolos) counts.set(s, (counts.get(s) || 0) + 1);
+  const k = counts.size;
+
+  let H = 0;
+  const filas = [];
+  for (const [s, c] of counts) {
+    const p = c / N;
+    const aporte = -p * Math.log2(p);
+    H += aporte;
+    filas.push({ s, c, p, aporte });
+  }
+  filas.sort((a, b) => b.c - a.c);
+  const H0 = Math.log2(k);
+  const red = 1 - H / H0;
+
+  document.getElementById("resultados").style.display = "";
+  document.getElementById("r-h").textContent = H.toFixed(3);
+  document.getElementById("r-h0").textContent = H0.toFixed(3);
+  document.getElementById("r-red").textContent = (red * 100).toFixed(1);
+  document.getElementById("r-n").textContent = N.toLocaleString("es") + " / " + k;
+
+  const list = document.getElementById("freq-list");
+  list.innerHTML = "";
+  const pMax = filas[0].p;
+  for (const f of filas) {
+    const row = document.createElement("div");
+    row.className = "freq-row";
+    const simbolo = f.s === " " ? "␣" : f.s;
+    row.innerHTML =
+      '<div class="sym">' + simbolo + '</div>' +
+      '<div class="bar-track"><div class="bar" style="width:' + (100 * f.p / pMax).toFixed(2) + '%"></div></div>' +
+      '<div class="num">' + (100 * f.p).toFixed(2) + '</div>' +
+      '<div class="num">' + f.aporte.toFixed(4) + '</div>';
+    row.addEventListener("mousemove", (e) => mostrarTooltip(e, simbolo, f, N));
+    row.addEventListener("mouseleave", ocultarTooltip);
+    list.appendChild(row);
+  }
+
+  const etiqueta = ultimoCargado && document.getElementById("texto").value === ultimoCargado.texto
+    ? ultimoCargado.nombre
+    : "Texto pegado (" + N.toLocaleString("es") + " símb.)";
+  const extras = [];
+  if (esp) extras.push("con espacio");
+  if (!fold) extras.push("con tildes");
+  const nombre = etiqueta + (extras.length ? " · " + extras.join(", ") : "");
+
+  const tbody = document.querySelector("#hist tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = "<td>" + nombre + "</td><td>" + N.toLocaleString("es") + "</td><td>" + k +
+    "</td><td>" + H.toFixed(3) + "</td><td>" + H0.toFixed(3) + "</td><td>" + (red * 100).toFixed(1) + " %</td>";
+  tbody.prepend(tr);
+  document.getElementById("hist-empty").style.display = "none";
+}
+
+function mostrarTooltip(e, simbolo, f, N) {
+  const tt = document.getElementById("tooltip");
+  tt.innerHTML = "<strong>" + simbolo + "</strong> — " + f.c.toLocaleString("es") + " de " +
+    N.toLocaleString("es") + " símbolos<br>p = " + (100 * f.p).toFixed(3) + " %<br>aporte a H₁: " +
+    f.aporte.toFixed(4) + " bits";
+  tt.style.display = "block";
+  const x = Math.min(e.clientX + 14, window.innerWidth - 220);
+  tt.style.left = x + "px";
+  tt.style.top = (e.clientY + 14) + "px";
+}
+function ocultarTooltip() { document.getElementById("tooltip").style.display = "none"; }
+
+function alert2(msg) {
+  const list = document.getElementById("resultados");
+  list.style.display = "";
+  document.getElementById("r-h").textContent = "–";
+  document.getElementById("r-h0").textContent = "–";
+  document.getElementById("r-red").textContent = "–";
+  document.getElementById("r-n").textContent = msg;
+}
+
+document.getElementById("btn-calc").addEventListener("click", calcular);
+document.getElementById("btn-es").addEventListener("click", () => {
+  document.getElementById("texto").value = TEXTO_ES;
+  ultimoCargado = { texto: TEXTO_ES, nombre: "Español — Don Quijote (1605)" };
+  calcular();
+});
+document.getElementById("btn-en").addEventListener("click", () => {
+  document.getElementById("texto").value = TEXTO_EN;
+  ultimoCargado = { texto: TEXTO_EN, nombre: "Inglés — Pride and Prejudice (1813)" };
+  calcular();
+});
+document.getElementById("btn-clear").addEventListener("click", () => {
+  document.getElementById("texto").value = "";
+  ultimoCargado = null;
+});
+</script>
+</body>
+</html>

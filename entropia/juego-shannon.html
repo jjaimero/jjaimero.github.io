@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego de Shannon — ¿cuánta información lleva cada letra?</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --band-1: rgba(42,120,214,0.10);
+    --band-h: rgba(137,135,129,0.12);
+    --good: #0ca30c;
+    --good-text: #006300;
+    --warn-text: #8a5f00;
+    --crit: #d03b3b;
+    --wash: rgba(11,11,11,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface-1: #1a1a19;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --band-1: rgba(57,135,229,0.16);
+      --band-h: rgba(137,135,129,0.16);
+      --good: #0ca30c;
+      --good-text: #0ca30c;
+      --warn-text: #fab219;
+      --crit: #e66767;
+      --wash: rgba(255,255,255,0.06);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 24px 16px 56px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .sub { color: var(--text-secondary); font-size: 0.93rem; margin: 0 0 20px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  h3 { font-size: 0.9rem; margin: 14px 0 6px; color: var(--text-secondary); }
+  .grid-cfg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+  @media (max-width: 700px) { .grid-cfg { grid-template-columns: 1fr; } }
+  label.blk { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+  select, input[type=text], textarea {
+    font: inherit; font-size: 0.92rem; width: 100%; background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--baseline); border-radius: 8px; padding: 7px 10px; }
+  textarea { min-height: 110px; resize: vertical; }
+  select:focus, input:focus, textarea:focus { outline: 2px solid var(--series-1); outline-offset: 1px; }
+  .radio { display: flex; gap: 8px; align-items: flex-start; font-size: 0.9rem; margin: 6px 0; cursor: pointer; }
+  .radio input { margin-top: 4px; }
+  .radio small { display: block; color: var(--text-secondary); font-size: 0.8rem; }
+  .inline { display: flex; gap: 10px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+  .inline select { width: auto; }
+  button { font: inherit; font-size: 0.88rem; padding: 7px 13px; border-radius: 8px;
+    border: 1px solid var(--baseline); background: var(--surface-1); color: var(--text-primary); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--series-1); }
+  button.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; font-weight: 600; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .msg { font-size: 0.85rem; color: var(--text-secondary); min-height: 1.3em; margin-top: 8px; }
+  .ref-line { font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+  /* juego */
+  .estado { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+    font-size: 0.86rem; color: var(--text-secondary); margin-bottom: 10px; }
+  .estado strong { color: var(--text-primary); }
+  .ventana { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 1.55rem;
+    line-height: 1.75; letter-spacing: 0.04em; padding: 14px 16px; border-radius: 10px;
+    background: var(--wash); min-height: 4.2em; word-break: break-all; }
+  .ventana .sp { color: var(--muted); opacity: 0.7; }
+  .ventana .dots { color: var(--muted); }
+  .ventana.largo { font-size: 1.12rem; }
+  .slot { display: inline-block; min-width: 1.15em; text-align: center; border: 2px solid var(--series-1);
+    border-radius: 6px; margin-left: 2px; padding: 0 2px; line-height: 1.3; animation: pulso 1.2s ease-in-out infinite; }
+  .slot.ok { border-color: var(--good); color: var(--good-text); animation: none; font-weight: 700; }
+  .slot.skip { border-color: var(--muted); color: var(--muted); animation: none; }
+  @keyframes pulso { 0%,100% { border-color: var(--series-1); } 50% { border-color: transparent; } }
+  .info-intento { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 10px 0 4px; font-size: 0.92rem; }
+  .info-intento .num { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .probadas { color: var(--text-secondary); font-size: 0.88rem; }
+  .probadas span { text-decoration: line-through; margin-right: 6px; font-family: ui-monospace, Menlo, monospace; }
+  .feedback { min-height: 1.4em; font-size: 0.9rem; font-weight: 600; }
+  .feedback.ok { color: var(--good-text); }
+  .feedback.mal { color: var(--text-secondary); font-weight: 500; }
+  .teclado { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; align-items: center; user-select: none; }
+  .teclado .fila { display: flex; gap: 5px; justify-content: center; }
+  .tecla { min-width: 38px; height: 44px; padding: 0 6px; font-size: 1.05rem; font-weight: 600;
+    font-family: ui-monospace, Menlo, monospace; border-radius: 7px; }
+  .tecla.espacio { min-width: 260px; font-family: inherit; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); }
+  .tecla.probada { background: var(--wash); color: var(--muted); text-decoration: line-through; border-color: var(--grid); }
+  .tecla.correcta { border-color: var(--good); color: var(--good-text); }
+  @media (max-width: 520px) { .tecla { min-width: 28px; height: 40px; padding: 0 3px; font-size: 0.95rem; } .tecla.espacio { min-width: 180px; } }
+  .hint { font-size: 0.78rem; color: var(--muted); text-align: center; margin-top: 8px; }
+
+  /* texto reducido */
+  .reducido { display: flex; flex-wrap: wrap; gap: 2px 0; font-family: ui-monospace, Menlo, monospace;
+    margin: 6px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--grid); }
+  .reducido .col { display: flex; flex-direction: column; align-items: center; min-width: 1.35em; }
+  .reducido .l { font-size: 1.1rem; }
+  .reducido .l.sp { color: var(--muted); }
+  .reducido .g { font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+  .reducido .g.uno { color: var(--muted); }
+  .reducido .g.mas { font-weight: 700; }
+
+  /* resultados */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .tile { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+  .tile .label { font-size: 0.78rem; color: var(--text-secondary); }
+  .tile .value { font-size: 1.4rem; font-weight: 650; }
+  .tile .unit { font-size: 0.78rem; color: var(--muted); font-weight: 400; margin-left: 3px; }
+  .formula { text-align: center; font-family: Georgia, "Times New Roman", serif; font-style: italic;
+    font-size: 1.02rem; margin: 8px 0 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8rem; color: var(--text-secondary); margin: 6px 0 4px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .sw.dot { width: 10px; height: 10px; border-radius: 50%; }
+  .sw.box { width: 14px; height: 10px; border-radius: 2px; }
+  #tabla-box { overflow-x: auto; }
+  .tabla { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 8px; }
+  .tabla th { text-align: right; color: var(--muted); font-weight: 500; font-size: 0.76rem;
+    border-bottom: 1px solid var(--grid); padding: 4px 8px 6px; white-space: nowrap; }
+  .tabla th:first-child, .tabla td:first-child { text-align: left; }
+  .tabla td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  .tabla tbody tr { cursor: pointer; }
+  .tabla tbody tr:hover { background: var(--wash); }
+  .tabla tbody tr.sel { background: var(--band-1); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 600;
+    padding: 0 7px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+  .b-good { color: var(--good-text); }
+  .b-warn { color: var(--warn-text); }
+  .b-crit { color: var(--crit); }
+  .empty { color: var(--muted); font-size: 0.88rem; padding: 18px 0; text-align: center; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #tooltip { position: fixed; pointer-events: none; background: var(--text-primary); color: var(--page);
+    padding: 7px 10px; border-radius: 6px; font-size: 0.78rem; line-height: 1.45; z-index: 20; display: none; max-width: 260px; }
+  .note { font-size: 0.86rem; color: var(--text-secondary); }
+  details summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
+  details p, details li { font-size: 0.88rem; color: var(--text-secondary); }
+  code.cod { font-family: ui-monospace, Menlo, monospace; font-size: 0.85em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Juego de Shannon</h1>
+  <p class="sub">Adivina la siguiente letra. El número de intentos que necesitas, acumulado sobre muchas letras, acota la entropía condicional
+  <i>F<sub>N</sub> = H(X<sub>N</sub> | X<sub>1</sub>…X<sub>N−1</sub>)</i>: así midió Shannon (1951) la entropía del inglés donde contar n-gramas ya no alcanza.</p>
+
+  <!-- CONFIGURACIÓN -->
+  <div class="card" id="card-config">
+    <h2>1 · Configuración</h2>
+    <div class="grid-cfg">
+      <div>
+        <label class="blk" for="sel-texto">Texto</label>
+        <select id="sel-texto">
+          <option value="samper">José María Samper — Viajes de un colombiano en Europa (1862)</option>
+          <option value="marianela">Benito Pérez Galdós — Marianela (1878)</option>
+          <option value="quijote">Miguel de Cervantes — Don Quijote (1605)</option>
+          <option value="pride">Jane Austen — Pride and Prejudice (1813, inglés)</option>
+          <option value="propio">Texto propio (pegar o subir .txt)…</option>
+        </select>
+        <div id="propio-box" style="display:none; margin-top:8px">
+          <textarea id="propio-texto" placeholder="Pega aquí un texto largo que los estudiantes no conozcan (prensa, un ensayo…). Idealmente decenas de miles de letras."></textarea>
+          <div class="row" style="margin-top:6px">
+            <button id="btn-propio-usar">Usar este texto</button>
+            <button id="btn-propio-archivo">Subir .txt…</button>
+            <input type="file" id="propio-archivo" accept=".txt,text/plain" style="display:none">
+          </div>
+        </div>
+        <div class="ref-line" id="ref-line">Cargando texto…</div>
+        <label class="blk" for="grupo" style="margin-top:12px">Nombre del grupo (para juntar resultados)</label>
+        <input type="text" id="grupo" placeholder="p. ej. Ana y Pedro" maxlength="40">
+      </div>
+      <div>
+        <span class="blk">Modo</span>
+        <label class="radio"><input type="radio" name="modo" value="sec" checked>
+          <span>Secuencial (diseño de Shannon)
+            <small>Pasajes de L letras desde un punto al azar. La letra k se adivina viendo las k−1 anteriores del pasaje: cada pasaje da una observación para cada N = 1, …, L.</small></span></label>
+        <div class="inline" style="margin-left:24px">
+          <label for="sel-L" class="note">L =</label>
+          <select id="sel-L"><option>10</option><option selected>15</option><option>20</option><option>30</option></select>
+        </div>
+        <label class="radio" style="margin-top:10px"><input type="radio" name="modo" value="ven">
+          <span>Ventana fija
+            <small>Cada letra en un lugar al azar, viendo siempre exactamente N−1 letras anteriores. Útil para contextos largos (N = 100 como Shannon).</small></span></label>
+        <div class="inline" style="margin-left:24px">
+          <label for="sel-N" class="note">N =</label>
+          <select id="sel-N"><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>20</option><option>50</option><option selected>100</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="primary" id="btn-empezar" disabled>Empezar</button>
+      <span class="note">Alfabeto: 28 símbolos (a–z, ñ y espacio). Tildes y diéresis se pliegan; puntuación y números cuentan como separadores.</span>
+    </div>
+  </div>
+
+  <!-- JUEGO -->
+  <div class="card" id="card-juego" style="display:none">
+    <h2>2 · Adivina la letra que va en el recuadro</h2>
+    <div class="estado">
+      <span id="estado-izq"></span>
+      <span id="estado-der"></span>
+    </div>
+    <div class="ventana" id="ventana" aria-live="polite"></div>
+    <div class="info-intento">
+      <span>Intento n.º <span class="num" id="num-intento">1</span></span>
+      <span class="probadas" id="probadas"></span>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="teclado" id="teclado"></div>
+    <div class="hint">Usa tu teclado (la barra espaciadora es el espacio) o los botones. Una letra ya descartada no vuelve a contar.</div>
+    <div class="row" style="justify-content:center">
+      <button id="btn-saltar" title="Revela la letra sin registrar la observación">Saltar esta letra (no se registra)</button>
+      <button id="btn-pausa">Terminar / cambiar configuración</button>
+    </div>
+  </div>
+
+  <!-- TEXTO REDUCIDO -->
+  <div class="card" id="card-reducido" style="display:none">
+    <h2>Texto reducido</h2>
+    <p class="note" style="margin-top:0">Debajo de cada letra, el número de intentos que costó. Es la «traducción» de Shannon: con un gemelo que adivine igual que tú, esta fila de números basta para reconstruir el texto. Por eso H(X<sub>N</sub> | contexto) = H(G<sub>N</sub> | contexto).</p>
+    <div id="reducidos"></div>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div class="card" id="card-resultados">
+    <h2>3 · Resultados</h2>
+    <div class="tiles">
+      <div class="tile"><div class="label">Letras adivinadas</div><div class="value" id="t-total">0</div><div class="label" id="t-origen"></div></div>
+      <div class="tile"><div class="label">Aciertos al primer intento</div><div class="value"><span id="t-primero">–</span><span class="unit">%</span></div></div>
+      <div class="tile"><div class="label">Menor cota superior obtenida</div><div class="value"><span id="t-mejor">–</span><span class="unit">bits/letra</span></div><div class="label" id="t-mejor-n"></div></div>
+    </div>
+    <p class="formula">Σ<sub>i</sub> i (q<sub>i</sub> − q<sub>i+1</sub>) log₂ i &nbsp;≤&nbsp; F<sub>N</sub> &nbsp;≤&nbsp; − Σ<sub>i</sub> q<sub>i</sub> log₂ q<sub>i</sub></p>
+    <p class="note" style="text-align:center;margin-top:-6px">q<sub>i</sub> = q<sub>i</sub><sup>N</sup> = fracción de letras acertadas en el intento i, viendo N−1 letras de contexto.</p>
+    <div id="grafica"></div>
+    <div class="legend" id="leyenda"></div>
+    <div id="tabla-box"></div>
+    <div id="hist-box"></div>
+  </div>
+
+  <!-- JUNTAR -->
+  <div class="card">
+    <h2>4 · Juntar los resultados del curso</h2>
+    <div class="grid-cfg">
+      <div>
+        <label class="blk" for="mi-codigo">Código de este grupo (solo sus datos propios)</label>
+        <textarea id="mi-codigo" readonly style="min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size:0.78rem"></textarea>
+        <div class="row" style="margin-top:6px"><button id="btn-copiar">Copiar código</button><span class="msg" id="msg-copiar" style="margin:0"></span></div>
+      </div>
+      <div>
+        <label class="blk" for="otros-codigos">Pegar códigos de otros grupos (uno o varios)</label>
+        <textarea id="otros-codigos" style="min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size:0.78rem" placeholder='{"juego":"shannon",…}'></textarea>
+        <div class="row" style="margin-top:6px"><button id="btn-importar">Sumar a los resultados</button><span class="msg" id="msg-importar" style="margin:0"></span></div>
+      </div>
+    </div>
+    <p class="note" id="lista-grupos"></p>
+    <div class="row">
+      <button id="btn-borrar">Borrar todos los datos de este navegador</button>
+    </div>
+  </div>
+
+  <!-- NOTAS -->
+  <div class="card">
+    <details>
+      <summary>Cómo usarlo en clase</summary>
+      <ol>
+        <li>Todos los grupos usan el mismo texto y modo. Sugerencia: 15 minutos en <b>secuencial, L = 15</b> y luego 10 minutos en <b>ventana fija, N = 100</b>.</li>
+        <li>Pueden jugar en parejas: uno teclea, el otro discute en voz alta las alternativas (el juego registra los intentos).</li>
+        <li>Al final, cada grupo pulsa «Copiar código» y se lo envía al profesor, que los pega en «Sumar a los resultados» y proyecta la gráfica del curso.</li>
+        <li><b>Control de calidad:</b> con N = 1 (sin contexto) la cota superior debe dar ≈ F₁ por conteo (~4 bits). Sin contexto, cualquier orden fijo de intentos es una biyección letras↔posiciones, así que H(G) = H(X) = F₁. Si da mucho menos, el texto era conocido.</li>
+        <li>Volumen: ~100–200 letras por cada N (sumando el curso) para que las cotas se estabilicen.</li>
+      </ol>
+    </details>
+    <details style="margin-top:10px">
+      <summary>Qué se está midiendo (y qué supuestos hay)</summary>
+      <p><b>El gemelo.</b> Fijado el contexto c, el orden en que el jugador propone letras es una biyección entre letras y posiciones 1…28. Por tanto H(X<sub>N</sub> | c) = H(G<sub>N</sub> | c), donde G<sub>N</sub> es el número de intentos.</p>
+      <p><b>Cota superior.</b> F<sub>N</sub> = H(G<sub>N</sub> | C) ≤ H(G<sub>N</sub>) = −Σ q<sub>i</sub> log₂ q<sub>i</sub>, porque condicionar no aumenta la entropía. Vale para cualquier jugador consistente: un mal jugador da una cota más floja, nunca falsa.</p>
+      <p><b>Cota inferior.</b> Supone un predictor <i>ideal</i> (propone letras en orden de probabilidad condicional decreciente). Entonces la distribución p de la posición de acierto en cada contexto es decreciente y se escribe como mezcla de uniformes u<sub>i</sub> sobre {1…i} con pesos i(p<sub>i</sub> − p<sub>i+1</sub>); por concavidad de H, H(p) ≥ Σ i(p<sub>i</sub> − p<sub>i+1</sub>) log₂ i, que es lineal en p y al promediar sobre contextos queda en términos de q. Con humanos reales es aproximada.</p>
+      <p><b>Conteo F₁–F₃.</b> Se calculan contando unigramas, digramas y trigramas en el texto completo elegido (F<sub>n</sub> = H<sub>n</sub> − H<sub>n−1</sub>). Más allá de F₃ el conteo ya no alcanza: para eso está el juego.</p>
+      <p><b>Advertencias.</b> (i) Si el texto es conocido (el comienzo del Quijote), se mide memoria, no lengua. (ii) En modo secuencial, el pasaje empieza en un punto al azar, a menudo a mitad de palabra. (iii) Con pocas observaciones, −Σ q log q subestima la entropía; mira la columna «muestra». (iv) Shannon obtuvo para el inglés, con N = 100, entre 0.6 y 1.3 bits/letra.</p>
+    </details>
+  </div>
+</div>
+<div id="tooltip"></div>
+
+<script>
+(() => {
+'use strict';
+// ---------- alfabeto ----------
+const ALFA = 'abcdefghijklmnopqrstuvwxyzñ ';
+const M = ALFA.length;              // 28
+const SPACE = M - 1;
+const IDX = new Map([...ALFA].map((c, i) => [c, i]));
+const DROP = -1, SEP = -2;
+const letraRe = /\p{L}/u, marcaRe = /\p{M}/gu, soloMarca = /^\p{M}$/u;
+const clsCache = new Map();
+function clasificar(ch) {
+  if (ch === "'" || ch === '\u2019' || ch === '\u2018') return DROP;
+  if (soloMarca.test(ch)) return DROP;
+  if (letraRe.test(ch)) {
+    if (ch === 'ñ') return IDX.get('ñ');
+    const base = ch.normalize('NFD').replace(marcaRe, '');
+    if (base.length === 1 && base !== ' ' && IDX.has(base)) return IDX.get(base);
+    return DROP;
+  }
+  return SEP;
+}
+function codificar(texto) {
+  const t = texto.normalize('NFC').toLowerCase();
+  const out = new Uint8Array(t.length);
+  let n = 0, prevSep = true;
+  for (const ch of t) {
+    let c = clsCache.get(ch);
+    if (c === undefined) { c = clasificar(ch); clsCache.set(ch, c); }
+    if (c >= 0) { out[n++] = c; prevSep = false; }
+    else if (c === SEP && !prevSep) { out[n++] = SPACE; prevSep = true; }
+  }
+  if (n && out[n - 1] === SPACE) n--;
+  return out.slice(0, n);
+}
+function aTexto(codes) { let s = ''; for (const c of codes) s += ALFA[c]; return s; }
+
+// ---------- entropía ----------
+function Hplug(arr, total) {
+  let h = 0;
+  for (let i = 0; i < arr.length; i++) { const c = arr[i]; if (c > 0) { const p = c / total; h -= p * Math.log2(p); } }
+  return h;
+}
+function referencia(codes) {
+  const n = codes.length;
+  const u = new Float64Array(M), d = new Float64Array(M * M), t = new Float64Array(M * M * M);
+  for (let i = 0; i < n; i++) u[codes[i]]++;
+  for (let i = 0; i < n - 1; i++) d[codes[i] * M + codes[i + 1]]++;
+  for (let i = 0; i < n - 2; i++) t[(codes[i] * M + codes[i + 1]) * M + codes[i + 2]]++;
+  const H1 = Hplug(u, n), H2 = Hplug(d, n - 1), H3 = Hplug(t, n - 2);
+  return { n, F: { 1: H1, 2: H2 - H1, 3: H3 - H2 } };
+}
+function cotas(c) {
+  let n = 0; for (let i = 0; i < M; i++) n += c[i] || 0;
+  if (!n) return null;
+  let up = 0, lo = 0;
+  for (let i = 0; i < M; i++) {
+    const q = (c[i] || 0) / n;
+    const qn = i + 1 < M ? (c[i + 1] || 0) / n : 0;
+    if (q > 0) up -= q * Math.log2(q);
+    lo += (i + 1) * (q - qn) * Math.log2(i + 1);
+  }
+  return { n, up, lo, q1: (c[0] || 0) / n };
+}
+function calidad(n) {
+  if (n >= 100) return { cls: 'b-good', txt: '✓ buena' };
+  if (n >= 30) return { cls: 'b-warn', txt: '⚠ moderada' };
+  return { cls: 'b-crit', txt: '✕ pocos datos' };
+}
+
+// ---------- almacenamiento ----------
+const KEY = 'juego-shannon-v1';
+let datos = { obs: {}, obsImp: {}, grupos: [], importados: [], textos: [], reducidos: [], grupo: '' };
+function cargarDatos() {
+  try { const s = localStorage.getItem(KEY); if (s) datos = Object.assign(datos, JSON.parse(s)); } catch (e) { /* sin almacenamiento */ }
+}
+function guardar() {
+  try { localStorage.setItem(KEY, JSON.stringify(datos)); } catch (e) { /* ignorar */ }
+}
+function sumar(dest, N, arr) {
+  if (!dest[N]) dest[N] = new Array(M).fill(0);
+  for (let i = 0; i < Math.min(arr.length, M); i++) dest[N][i] += Math.max(0, Math.floor(+arr[i] || 0));
+}
+function combinados() {
+  const out = {};
+  for (const src of [datos.obs, datos.obsImp]) for (const [N, arr] of Object.entries(src)) sumar(out, N, arr);
+  return out;
+}
+
+// ---------- corpus ----------
+const CORPUS = {
+  samper: { archivo: 'texts/samper.txt', corto: 'Samper (es-CO)' },
+  marianela: { archivo: 'texts/marianela.txt', corto: 'Marianela (es)' },
+  quijote: { archivo: 'texts/quijote.txt', corto: 'Quijote (es)' },
+  pride: { archivo: 'texts/prideprejudice.txt', corto: 'Austen (en)' },
+  propio: { corto: 'Texto propio' }
+};
+const cache = {};
+let corpusId = null, codes = null, ref = null;
+const $ = id => document.getElementById(id);
+
+function setRef(msg) { $('ref-line').innerHTML = msg; }
+function prepararCorpus(id, texto) {
+  setRef('Codificando y contando n-gramas…');
+  setTimeout(() => {
+    const c = codificar(texto);
+    if (c.length < 200) { setRef('El texto es demasiado corto (' + c.length + ' símbolos). Usa al menos unos miles de letras.'); $('btn-empezar').disabled = true; return; }
+    corpusId = id; codes = c; ref = referencia(c);
+    const aviso = c.length < 20000 ? ' <span class="badge b-warn">⚠ texto corto: F₂ y F₃ por conteo poco confiables</span>' : '';
+    setRef('Texto listo: ' + c.length.toLocaleString('es') + ' símbolos. Conteo: F₀ = ' + Math.log2(M).toFixed(2) +
+      ', F₁ = ' + ref.F[1].toFixed(2) + ', F₂ = ' + ref.F[2].toFixed(2) + ', F₃ = ' + ref.F[3].toFixed(2) + ' bits/letra.' + aviso);
+    $('btn-empezar').disabled = false;
+    actualizarResultados();
+  }, 20);
+}
+async function elegirCorpus() {
+  const id = $('sel-texto').value;
+  $('propio-box').style.display = id === 'propio' ? '' : 'none';
+  $('btn-empezar').disabled = true;
+  if (id === 'propio') { setRef('Pega o sube un texto y pulsa «Usar este texto».'); return; }
+  try {
+    setRef('Cargando texto…');
+    if (!cache[id]) { const r = await fetch(CORPUS[id].archivo); if (!r.ok) throw new Error('HTTP ' + r.status); cache[id] = await r.text(); }
+    prepararCorpus(id, cache[id]);
+  } catch (e) { setRef('No se pudo cargar el texto (' + e.message + ').'); }
+}
+
+// ---------- juego ----------
+let juego = null;
+const usados = [];
+function solapa(a, b) { return usados.some(([x, y]) => a < y && x < b); }
+function inicioAlAzar(len) {
+  const max = codes.length - len - 1;
+  let s = 0;
+  for (let t = 0; t < 40; t++) { s = Math.floor(Math.random() * max); if (!solapa(s, s + len)) break; }
+  usados.push([s, s + len]);
+  return s;
+}
+function empezar() {
+  const modo = document.querySelector('input[name=modo]:checked').value;
+  const L = +$('sel-L').value, Nfix = +$('sel-N').value;
+  if (modo === 'ven' && codes.length < Nfix + 10) { setRef('El texto es demasiado corto para N = ' + Nfix + '.'); return; }
+  if (document.activeElement) document.activeElement.blur();
+  datos.grupo = $('grupo').value.trim();
+  const corto = CORPUS[corpusId].corto;
+  if (!datos.textos.includes(corto)) datos.textos.push(corto);
+  guardar();
+  juego = { modo, L, Nfix, pasaje: null, k: 0, red: [], target: 0, ctx: null, N: 1, intentos: 0, probadas: new Set(), esperando: false, pasajes: 0, sesion: 0 };
+  $('card-juego').style.display = '';
+  $('card-reducido').style.display = modo === 'sec' ? '' : 'none';
+  if (modo === 'sec') nuevoPasaje(); else prepararLetra();
+  $('card-juego').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function nuevoPasaje() {
+  const s = inicioAlAzar(juego.L);
+  juego.pasaje = codes.slice(s, s + juego.L);
+  juego.k = 0; juego.red = []; juego.pasajes++;
+  prepararLetra();
+}
+function prepararLetra() {
+  if (juego.modo === 'sec') {
+    juego.ctx = juego.pasaje.slice(0, juego.k);
+    juego.target = juego.pasaje[juego.k];
+    juego.N = juego.k + 1;
+  } else {
+    const N = juego.Nfix;
+    const s = inicioAlAzar(N);
+    juego.ctx = codes.slice(s, s + N - 1);
+    juego.target = codes[s + N - 1];
+    juego.N = N;
+  }
+  juego.intentos = 0; juego.probadas = new Set(); juego.esperando = false;
+  $('feedback').textContent = ''; $('feedback').className = 'feedback';
+  dibujarJuego(null);
+}
+function htmlLetras(arr) {
+  let h = '';
+  for (const c of arr) h += c === SPACE ? '<span class="sp">·</span>' : ALFA[c];
+  return h;
+}
+function dibujarJuego(revelada) {
+  const v = $('ventana');
+  v.classList.toggle('largo', juego.ctx.length > 40);
+  let slot;
+  if (revelada === 'ok') slot = '<span class="slot ok">' + (juego.target === SPACE ? '·' : ALFA[juego.target]) + '</span>';
+  else if (revelada === 'skip') slot = '<span class="slot skip">' + (juego.target === SPACE ? '·' : ALFA[juego.target]) + '</span>';
+  else slot = '<span class="slot">&nbsp;</span>';
+  v.innerHTML = '<span class="dots">…</span>' + htmlLetras(juego.ctx) + slot;
+  $('num-intento').textContent = juego.intentos + (revelada ? 0 : 1);
+  const pr = [...juego.probadas].map(c => '<span>' + (c === SPACE ? '␣' : ALFA[c]) + '</span>').join('');
+  $('probadas').innerHTML = pr ? 'Descartadas: ' + pr : '';
+  const vis = juego.N - 1;
+  $('estado-izq').innerHTML = juego.modo === 'sec'
+    ? 'Pasaje <strong>' + juego.pasajes + '</strong> · letra <strong>' + (juego.k + 1) + '</strong> de ' + juego.L + ' · <strong>N = ' + juego.N + '</strong> (' + vis + ' visibles)'
+    : 'Ventana fija · <strong>N = ' + juego.N + '</strong> (' + vis + ' letras visibles)';
+  $('estado-der').textContent = 'En esta ronda: ' + juego.sesion + ' letras';
+  dibujarTeclado(revelada);
+  if (juego.modo === 'sec') dibujarReducidos();
+}
+const FILAS = ['qwertyuiop', 'asdfghjklñ', 'zxcvbnm'];
+function dibujarTeclado(revelada) {
+  const t = $('teclado');
+  if (!t.dataset.listo) {
+    let h = '';
+    for (const f of FILAS) {
+      h += '<div class="fila">';
+      for (const ch of f) h += '<button class="tecla" data-c="' + IDX.get(ch) + '" aria-label="letra ' + ch + '">' + ch + '</button>';
+      h += '</div>';
+    }
+    h += '<div class="fila"><button class="tecla espacio" data-c="' + SPACE + '" aria-label="espacio">espacio</button></div>';
+    t.innerHTML = h;
+    t.dataset.listo = '1';
+    t.addEventListener('mousedown', e => { if (e.target.closest('.tecla')) e.preventDefault(); });
+    t.addEventListener('click', e => { const b = e.target.closest('.tecla'); if (b) { b.blur(); adivinar(+b.dataset.c); } });
+  }
+  for (const b of t.querySelectorAll('.tecla')) {
+    const c = +b.dataset.c;
+    b.classList.toggle('probada', juego.probadas.has(c));
+    b.classList.toggle('correcta', revelada === 'ok' && c === juego.target);
+  }
+}
+function adivinar(c) {
+  if (!juego || juego.esperando) return;
+  const fb = $('feedback');
+  if (juego.probadas.has(c)) { fb.className = 'feedback mal'; fb.textContent = 'Ya descartaste «' + (c === SPACE ? 'espacio' : ALFA[c]) + '»; no cuenta de nuevo.'; return; }
+  juego.intentos++;
+  if (c === juego.target) {
+    juego.esperando = true;
+    registrar(juego.N, juego.intentos);
+    if (juego.modo === 'sec') juego.red.push({ c, g: juego.intentos });
+    juego.sesion++;
+    fb.className = 'feedback ok';
+    fb.textContent = '✓ ' + (c === SPACE ? 'espacio' : '«' + ALFA[c] + '»') + ' en ' + juego.intentos + (juego.intentos === 1 ? ' intento' : ' intentos');
+    dibujarJuego('ok');
+    setTimeout(siguiente, 650);
+  } else {
+    juego.probadas.add(c);
+    fb.className = 'feedback mal';
+    fb.textContent = 'No es «' + (c === SPACE ? 'espacio' : ALFA[c]) + '».';
+    dibujarJuego(null);
+  }
+}
+function saltar() {
+  if (!juego || juego.esperando) return;
+  juego.esperando = true;
+  if (juego.modo === 'sec') juego.red.push({ c: juego.target, g: 0 });
+  $('feedback').className = 'feedback mal';
+  $('feedback').textContent = 'Era ' + (juego.target === SPACE ? 'un espacio' : '«' + ALFA[juego.target] + '»') + ' (no se registró).';
+  dibujarJuego('skip');
+  setTimeout(siguiente, 900);
+}
+function siguiente() {
+  if (!juego) return;
+  if (juego.modo === 'sec') {
+    juego.k++;
+    if (juego.k >= juego.L) {
+      datos.reducidos.unshift({ l: juego.red.map(r => r.c), g: juego.red.map(r => r.g) });
+      datos.reducidos = datos.reducidos.slice(0, 6);
+      guardar();
+      nuevoPasaje();
+      return;
+    }
+  }
+  prepararLetra();
+}
+function registrar(N, g) {
+  sumar(datos.obs, N, Array.from({ length: g }, (_, i) => (i === g - 1 ? 1 : 0)));
+  guardar();
+  actualizarResultados();
+}
+function dibujarReducidos() {
+  const box = $('reducidos');
+  const filas = [];
+  if (juego && juego.modo === 'sec' && juego.red.length) filas.push({ l: juego.red.map(r => r.c), g: juego.red.map(r => r.g), actual: true });
+  for (const r of datos.reducidos) filas.push(r);
+  if (!filas.length) { box.innerHTML = '<p class="empty">Aquí aparecerá cada pasaje con sus números de intentos.</p>'; return; }
+  box.innerHTML = filas.slice(0, 5).map(f => {
+    let h = '<div class="reducido">';
+    for (let i = 0; i < f.l.length; i++) {
+      const c = f.l[i], g = f.g[i];
+      const cls = g === 1 ? 'uno' : (g >= 2 ? 'mas' : '');
+      h += '<div class="col"><span class="l' + (c === SPACE ? ' sp' : '') + '">' + (c === SPACE ? '·' : ALFA[c]) +
+        '</span><span class="g ' + cls + '">' + (g === 0 ? '×' : g) + '</span></div>';
+    }
+    return h + (f.actual ? '<span class="note" style="align-self:center;margin-left:8px">(en curso)</span>' : '') + '</div>';
+  }).join('');
+}
+
+// ---------- teclado físico ----------
+document.addEventListener('keydown', e => {
+  if (!juego || $('card-juego').style.display === 'none') return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const act = document.activeElement;
+  if (act && act.tagName === 'BUTTON') act.blur();   // evita que espacio/Enter activen el botón con foco
+  if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); adivinar(SPACE); return; }
+  if (e.key.length !== 1) return;
+  let ch = e.key.toLowerCase();
+  if (ch !== 'ñ') ch = ch.normalize('NFD').replace(marcaRe, '');
+  if (IDX.has(ch) && ch !== ' ') { e.preventDefault(); adivinar(IDX.get(ch)); }
+});
+
+// ---------- resultados ----------
+let Nsel = null;
+function actualizarResultados() {
+  const comb = combinados();
+  const filas = Object.entries(comb).map(([N, c]) => ({ N: +N, c, k: cotas(c) })).filter(r => r.k).sort((a, b) => a.N - b.N);
+  let total = 0, primero = 0;
+  for (const r of filas) { total += r.k.n; primero += r.c[0]; }
+  let propias = 0; for (const c of Object.values(datos.obs)) propias += c.reduce((a, b) => a + b, 0);
+  $('t-total').textContent = total.toLocaleString('es');
+  $('t-origen').textContent = total ? (propias.toLocaleString('es') + ' propias' + (total > propias ? ' + ' + (total - propias).toLocaleString('es') + ' importadas' : '')) : '';
+  $('t-primero').textContent = total ? (100 * primero / total).toFixed(0) : '–';
+  const fiables = filas.filter(r => r.k.n >= 30);
+  if (fiables.length) {
+    const best = fiables.reduce((a, b) => (b.k.up < a.k.up ? b : a));
+    $('t-mejor').textContent = best.k.up.toFixed(2);
+    $('t-mejor-n').textContent = 'con N = ' + best.N + ' (' + best.k.n + ' letras)';
+  } else { $('t-mejor').textContent = '–'; $('t-mejor-n').textContent = 'se necesitan ≥ 30 letras en algún N'; }
+
+  dibujarGrafica(filas);
+  // tabla
+  if (!filas.length) { $('tabla-box').innerHTML = ''; $('hist-box').innerHTML = ''; }
+  else {
+    let h = '<table class="tabla"><thead><tr><th>N</th><th>visibles</th><th>letras</th><th>q₁</th><th>cota sup.</th><th>cota inf.</th><th>F<sub>N</sub> por conteo</th><th>muestra</th></tr></thead><tbody>';
+    for (const r of filas) {
+      const q = calidad(r.k.n);
+      const fc = ref && ref.F[r.N] !== undefined ? ref.F[r.N].toFixed(3) : '—';
+      h += '<tr data-n="' + r.N + '"' + (r.N === Nsel ? ' class="sel"' : '') + '><td><b>' + r.N + '</b></td><td>' + (r.N - 1) + '</td><td>' + r.k.n +
+        '</td><td>' + (100 * r.k.q1).toFixed(0) + ' %</td><td>' + r.k.up.toFixed(3) + '</td><td>' + r.k.lo.toFixed(3) + '</td><td>' + fc +
+        '</td><td><span class="badge ' + q.cls + '">' + q.txt + '</span></td></tr>';
+    }
+    h += '</tbody></table><p class="note">Pulsa una fila para ver su histograma de intentos q<sub>i</sub>.</p>';
+    $('tabla-box').innerHTML = h;
+    $('tabla-box').querySelectorAll('tbody tr').forEach(tr => tr.addEventListener('click', () => { Nsel = +tr.dataset.n; actualizarResultados(); }));
+    if (Nsel === null || !comb[Nsel]) Nsel = filas.reduce((a, b) => (b.k.n > a.k.n ? b : a)).N;
+    const fs = filas.find(r => r.N === Nsel);
+    dibujarHistograma(fs);
+  }
+  // código
+  $('mi-codigo').value = codigoExport();
+  const gr = datos.grupos.length ? 'Grupos importados: ' + datos.grupos.join(', ') + '.' : '';
+  $('lista-grupos').textContent = gr;
+}
+
+function svgEl(W, H, inner, label) {
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="' + label + '">' + inner + '</svg>';
+}
+const MIN_GRAF = 10;
+function dibujarGrafica(todas) {
+  const box = $('grafica');
+  const filas = todas.filter(r => r.k.n >= MIN_GRAF);
+  const ocultas = todas.length - filas.length;
+  const humanos = new Map(filas.map(r => [r.N, r]));
+  const catsSet = new Set(filas.map(r => r.N));
+  if (ref) [1, 2, 3].forEach(n => catsSet.add(n));
+  const cats = [...catsSet].sort((a, b) => a - b);
+  if (!cats.length) {
+    box.innerHTML = '<p class="empty">Todavía no hay datos. Cuando adivines letras, aquí aparecerán las cotas para cada N.</p>';
+    $('leyenda').innerHTML = '';
+    return;
+  }
+  const W = 680, H = 330, mL = 46, mR = 50, mT = 18, mB = 46;
+  const yMax = 5;
+  const pw = W - mL - mR, ph = H - mT - mB;
+  const x = i => mL + (cats.length === 1 ? pw / 2 : (i * pw) / (cats.length - 1));
+  const y = v => mT + (1 - Math.max(0, Math.min(yMax, v)) / yMax) * ph;
+  let s = '';
+  // franja h de la literatura
+  s += '<rect x="' + mL + '" y="' + y(1.3) + '" width="' + pw + '" height="' + (y(1.0) - y(1.3)) + '" style="fill:var(--band-h)"/>';
+  // grilla
+  for (let v = 0; v <= 5; v++) {
+    s += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + y(v) + '" y2="' + y(v) + '" style="stroke:var(--grid)" stroke-width="1"/>';
+    s += '<text x="' + (mL - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" style="fill:var(--muted)">' + v + '</text>';
+  }
+  s += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + y(0) + '" y2="' + y(0) + '" style="stroke:var(--baseline)" stroke-width="1"/>';
+  // F0
+  const F0 = Math.log2(M);
+  s += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + y(F0) + '" y2="' + y(F0) + '" style="stroke:var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>';
+  s += '<text x="' + (W - mR) + '" y="' + (y(F0) - 5) + '" text-anchor="end" font-size="10.5" style="fill:var(--muted)">F₀ = log₂ 28 ≈ 4.81</text>';
+  s += '<text x="' + (mL + 6) + '" y="' + (y(1.0) + 13) + '" text-anchor="start" font-size="10.5" style="fill:var(--muted)">h ≈ 1.0–1.3 (literatura, contexto largo)</text>';
+  // ejes x
+  const paso = cats.length > 16 ? Math.ceil(cats.length / 12) : 1;
+  cats.forEach((N, i) => {
+    if (i % paso === 0 || i === cats.length - 1)
+      s += '<text x="' + x(i) + '" y="' + (H - mB + 17) + '" text-anchor="middle" font-size="11" style="fill:var(--text-secondary)">' + N + '</text>';
+  });
+  s += '<text x="' + (mL + pw / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" style="fill:var(--muted)">N  (letras visibles = N − 1)</text>';
+  s += '<text x="13" y="' + (mT + ph / 2) + '" text-anchor="middle" font-size="11" style="fill:var(--muted)" transform="rotate(-90 13 ' + (mT + ph / 2) + ')">bits/letra</text>';
+  // banda entre cotas
+  const hi = cats.map((N, i) => ({ i, r: humanos.get(N) })).filter(o => o.r);
+  if (hi.length > 1) {
+    const top = hi.map(o => x(o.i) + ',' + y(o.r.k.up)).join(' ');
+    const bot = hi.slice().reverse().map(o => x(o.i) + ',' + y(Math.max(0, o.r.k.lo))).join(' ');
+    s += '<polygon points="' + top + ' ' + bot + '" style="fill:var(--band-1)"/>';
+  }
+  // referencia por conteo
+  if (ref) {
+    const rp = cats.map((N, i) => ({ i, v: ref.F[N] })).filter(o => o.v !== undefined);
+    s += '<polyline points="' + rp.map(o => x(o.i) + ',' + y(o.v)).join(' ') + '" fill="none" style="stroke:var(--series-3)" stroke-width="2" stroke-dasharray="5 4"/>';
+    rp.forEach(o => { s += '<rect x="' + (x(o.i) - 5) + '" y="' + (y(o.v) - 5) + '" width="10" height="10" transform="rotate(45 ' + x(o.i) + ' ' + y(o.v) + ')" style="fill:var(--series-3);stroke:var(--surface-1)" stroke-width="2"/>'; });
+  }
+  // líneas de cotas
+  if (hi.length > 1) {
+    s += '<polyline points="' + hi.map(o => x(o.i) + ',' + y(Math.max(0, o.r.k.lo))).join(' ') + '" fill="none" style="stroke:var(--series-2)" stroke-width="2"/>';
+    s += '<polyline points="' + hi.map(o => x(o.i) + ',' + y(o.r.k.up)).join(' ') + '" fill="none" style="stroke:var(--series-1)" stroke-width="2"/>';
+  }
+  hi.forEach(o => {
+    const op = o.r.k.n < 30 ? 0.45 : 1;
+    s += '<circle cx="' + x(o.i) + '" cy="' + y(Math.max(0, o.r.k.lo)) + '" r="4.5" style="fill:var(--series-2);stroke:var(--surface-1)" stroke-width="2" opacity="' + op + '"/>';
+    s += '<circle cx="' + x(o.i) + '" cy="' + y(o.r.k.up) + '" r="4.5" style="fill:var(--series-1);stroke:var(--surface-1)" stroke-width="2" opacity="' + op + '"/>';
+  });
+  // etiquetas directas en el último punto (la mayor arriba, la menor abajo, aunque se crucen)
+  if (hi.length) {
+    const last = hi[hi.length - 1];
+    const lx = x(last.i) + 9;
+    const a = Math.max(last.r.k.up, last.r.k.lo), b = Math.max(0, Math.min(last.r.k.up, last.r.k.lo));
+    let ya = y(a) + 4, yb = y(b) + 4;
+    if (yb - ya < 14) { const d = (14 - (yb - ya)) / 2; ya -= d; yb += d; }
+    s += '<text x="' + lx + '" y="' + ya + '" text-anchor="start" font-size="11.5" font-weight="600" style="fill:var(--text-primary)">' + a.toFixed(2) + '</text>';
+    s += '<text x="' + lx + '" y="' + yb + '" text-anchor="start" font-size="11.5" style="fill:var(--text-secondary)">' + b.toFixed(2) + '</text>';
+  }
+  if (!hi.length) {
+    s += '<text x="' + (mL + pw / 2) + '" y="' + (mT + ph * 0.62) + '" text-anchor="middle" font-size="12.5" style="fill:var(--text-secondary)">' +
+      (todas.length ? 'Aún ningún N tiene ' + MIN_GRAF + ' letras; mira la tabla.' : 'Juega para ver tus cotas junto a la referencia por conteo.') + '</text>';
+  }
+  // zonas de hover
+  const ancho = cats.length > 1 ? pw / (cats.length - 1) : pw;
+  cats.forEach((N, i) => {
+    s += '<rect class="hit" data-n="' + N + '" x="' + (x(i) - ancho / 2) + '" y="' + mT + '" width="' + ancho + '" height="' + ph + '" fill="transparent"/>';
+  });
+  box.innerHTML = svgEl(W, H, s, 'Cotas de la entropía condicional por N');
+  box.querySelectorAll('.hit').forEach(r => {
+    r.addEventListener('mousemove', e => {
+      const N = +r.dataset.n, h = humanos.get(N);
+      let t = '<b>N = ' + N + '</b> (' + (N - 1) + ' letras visibles)';
+      if (h) t += '<br>' + h.k.n + ' letras · q₁ = ' + (100 * h.k.q1).toFixed(0) + ' %<br>cota superior: ' + h.k.up.toFixed(3) + '<br>cota inferior: ' + h.k.lo.toFixed(3);
+      else t += '<br>sin datos del juego';
+      if (ref && ref.F[N] !== undefined) t += '<br>conteo F' + ['', '₁', '₂', '₃'][N] + ': ' + ref.F[N].toFixed(3);
+      tip(e, t);
+    });
+    r.addEventListener('mouseleave', ocultarTip);
+  });
+  $('leyenda').innerHTML =
+    '<span><span class="sw" style="background:var(--series-1)"></span>Cota superior (juego)</span>' +
+    '<span><span class="sw" style="background:var(--series-2)"></span>Cota inferior (juego)</span>' +
+    (ref ? '<span><span class="sw" style="background:var(--series-3)"></span>F₁–F₃ por conteo en el texto</span>' : '') +
+    '<span><span class="sw box" style="background:var(--band-h)"></span>h de la literatura</span>' +
+    '<span class="note">Puntos tenues: 10–29 letras.' + (ocultas ? ' ' + ocultas + ' valor(es) de N con menos de ' + MIN_GRAF + ' letras no se grafican (ver tabla).' : '') +
+    ' Con pocas letras la cota superior está sesgada hacia abajo y puede quedar bajo la inferior.</span>';
+}
+function dibujarHistograma(fila) {
+  const box = $('hist-box');
+  if (!fila) { box.innerHTML = ''; return; }
+  const c = fila.c, n = fila.k.n;
+  let imax = 6; for (let i = 0; i < M; i++) if (c[i] > 0) imax = Math.max(imax, i + 1);
+  const qs = Array.from({ length: imax }, (_, i) => (c[i] || 0) / n);
+  const qmax = Math.max(...qs);
+  const W = 680, H = 210, mL = 40, mR = 10, mT = 20, mB = 34;
+  const pw = W - mL - mR, ph = H - mT - mB;
+  const bw = pw / imax, gap = 2;
+  const y = v => mT + (1 - v / (qmax * 1.12)) * ph;
+  let s = '';
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+    if (v > qmax * 1.12) continue;
+    s += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + y(v) + '" y2="' + y(v) + '" style="stroke:var(--grid)"/>';
+    s += '<text x="' + (mL - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="10.5" style="fill:var(--muted)">' + (100 * v) + '%</text>';
+  }
+  qs.forEach((q, i) => {
+    const x0 = mL + i * bw + gap / 2, w = bw - gap, y0 = y(q), hgt = y(0) - y0;
+    if (hgt > 0.5) {
+      const r = Math.min(4, w / 2, hgt);
+      s += '<path class="hb" data-i="' + (i + 1) + '" d="M' + x0 + ',' + y(0) + ' V' + (y0 + r) + ' Q' + x0 + ',' + y0 + ' ' + (x0 + r) + ',' + y0 +
+        ' H' + (x0 + w - r) + ' Q' + (x0 + w) + ',' + y0 + ' ' + (x0 + w) + ',' + (y0 + r) + ' V' + y(0) + ' Z" style="fill:var(--series-1)"/>';
+      if (q >= 0.02 && imax <= 16) s += '<text x="' + (x0 + w / 2) + '" y="' + (y0 - 5) + '" text-anchor="middle" font-size="10.5" style="fill:var(--text-secondary)">' + (100 * q).toFixed(0) + '%</text>';
+    }
+    if (imax <= 16 || i % 2 === 0) s += '<text x="' + (x0 + w / 2) + '" y="' + (H - mB + 15) + '" text-anchor="middle" font-size="10.5" style="fill:var(--text-secondary)">' + (i + 1) + '</text>';
+    s += '<rect class="hb" data-i="' + (i + 1) + '" x="' + (mL + i * bw) + '" y="' + mT + '" width="' + bw + '" height="' + ph + '" fill="transparent"/>';
+  });
+  s += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + y(0) + '" y2="' + y(0) + '" style="stroke:var(--baseline)"/>';
+  s += '<text x="' + (mL + pw / 2) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="11" style="fill:var(--muted)">número de intentos i</text>';
+  box.innerHTML = '<h3>Histograma de intentos para N = ' + fila.N + ' (' + n + ' letras): cota superior ' + fila.k.up.toFixed(3) + ', cota inferior ' + fila.k.lo.toFixed(3) + '</h3>' + svgEl(W, H, s, 'Histograma de intentos');
+  box.querySelectorAll('.hb').forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const i = +el.dataset.i;
+      tip(e, '<b>Intento ' + i + '</b><br>' + (c[i - 1] || 0) + ' de ' + n + ' letras<br>q<sub>' + i + '</sub> = ' + (100 * ((c[i - 1] || 0) / n)).toFixed(1) + ' %');
+    });
+    el.addEventListener('mouseleave', ocultarTip);
+  });
+}
+function tip(e, html) {
+  const t = $('tooltip'); t.innerHTML = html; t.style.display = 'block';
+  t.style.left = Math.min(e.clientX + 14, window.innerWidth - 270) + 'px';
+  t.style.top = (e.clientY + 14) + 'px';
+}
+function ocultarTip() { $('tooltip').style.display = 'none'; }
+
+// ---------- exportar / importar ----------
+function codigoExport() {
+  const obs = {};
+  for (const [N, c] of Object.entries(datos.obs)) {
+    let last = c.length; while (last > 0 && !c[last - 1]) last--;
+    if (last) obs[N] = c.slice(0, last);
+  }
+  const grupo = ($('grupo').value.trim() || datos.grupo || 'sin nombre').replace(/[{}"\\]/g, '');
+  const textos = datos.textos.map(t => String(t).replace(/[{}"\\]/g, ''));
+  return JSON.stringify({ juego: 'shannon', v: 1, grupo, m: M, textos, obs });
+}
+function importar() {
+  const raw = $('otros-codigos').value;
+  const cand = raw.match(/\{"juego":"shannon"[\s\S]*?\}\}/g) || [];
+  let ok = 0, rep = 0, mal = 0, letras = 0;
+  const propio = codigoExport();
+  for (const s of cand) {
+    try {
+      const o = JSON.parse(s);
+      if (o.juego !== 'shannon' || o.m !== M || typeof o.obs !== 'object') { mal++; continue; }
+      if (datos.importados.includes(s) || s === propio) { rep++; continue; }
+      for (const [N, arr] of Object.entries(o.obs)) {
+        if (!/^\d+$/.test(N) || !Array.isArray(arr)) continue;
+        sumar(datos.obsImp, N, arr); letras += arr.reduce((a, b) => a + (+b || 0), 0);
+      }
+      datos.importados.push(s);
+      datos.grupos.push(String(o.grupo || 'sin nombre').slice(0, 40));
+      for (const t of (o.textos || [])) if (typeof t === 'string' && !datos.textos.includes(t)) datos.textos.push(t.slice(0, 40));
+      ok++;
+    } catch (e) { mal++; }
+  }
+  guardar();
+  $('msg-importar').textContent = cand.length
+    ? ok + ' código(s) sumado(s) (' + letras + ' letras)' + (rep ? ', ' + rep + ' repetido(s)' : '') + (mal ? ', ' + mal + ' inválido(s)' : '') + '.'
+    : 'No encontré ningún código válido.';
+  if (ok) $('otros-codigos').value = '';
+  actualizarResultados();
+}
+
+// ---------- eventos ----------
+let borrarArmado = false;
+function init() {
+  cargarDatos();
+  if (datos.grupo) $('grupo').value = datos.grupo;
+  $('sel-texto').addEventListener('change', elegirCorpus);
+  $('btn-propio-usar').addEventListener('click', () => {
+    const t = $('propio-texto').value;
+    if (t.trim()) prepararCorpus('propio', t); else setRef('El cuadro está vacío.');
+  });
+  $('btn-propio-archivo').addEventListener('click', () => $('propio-archivo').click());
+  $('propio-archivo').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { $('propio-texto').value = rd.result.slice(0, 5000) + (rd.result.length > 5000 ? '\n[…]' : ''); prepararCorpus('propio', rd.result); };
+    rd.readAsText(f, 'UTF-8'); e.target.value = '';
+  });
+  $('btn-empezar').addEventListener('click', empezar);
+  $('btn-saltar').addEventListener('click', saltar);
+  $('btn-pausa').addEventListener('click', () => {
+    juego = null; $('card-juego').style.display = 'none'; $('card-reducido').style.display = 'none';
+    $('card-config').scrollIntoView({ behavior: 'smooth' });
+  });
+  $('grupo').addEventListener('input', () => { datos.grupo = $('grupo').value.trim(); guardar(); $('mi-codigo').value = codigoExport(); });
+  $('btn-copiar').addEventListener('click', async () => {
+    const ta = $('mi-codigo');
+    try { await navigator.clipboard.writeText(ta.value); $('msg-copiar').textContent = 'Copiado.'; }
+    catch (e) { ta.focus(); ta.select(); $('msg-copiar').textContent = 'Seleccionado: cópialo con Ctrl+C / ⌘C.'; }
+  });
+  $('btn-importar').addEventListener('click', importar);
+  $('btn-borrar').addEventListener('click', () => {
+    const b = $('btn-borrar');
+    if (!borrarArmado) { borrarArmado = true; b.textContent = '¿Seguro? Pulsa otra vez para borrar todo'; setTimeout(() => { borrarArmado = false; b.textContent = 'Borrar todos los datos de este navegador'; }, 4000); return; }
+    borrarArmado = false; b.textContent = 'Borrar todos los datos de este navegador';
+    const g = datos.grupo;
+    datos = { obs: {}, obsImp: {}, grupos: [], importados: [], textos: corpusId ? [CORPUS[corpusId].corto] : [], reducidos: [], grupo: g };
+    Nsel = null; guardar(); actualizarResultados();
+    if (juego && juego.modo === 'sec') dibujarReducidos();
+  });
+  actualizarResultados();
+  elegirCorpus();
+}
+init();
+// exponer para pruebas
+window.__shannon = { codificar, referencia, cotas, aTexto };
+})();
+</script>
+</body>
+</html>
