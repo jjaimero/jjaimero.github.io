@@ -129,6 +129,7 @@
     <div class="row">
       <button id="btn-quijote">Don Quijote completo (es, ~1.6M letras)</button>
       <button id="btn-pride">Pride and Prejudice completa (en, ~0.5M letras)</button>
+      <button id="btn-relato">Relato (completo)</button>
       <button id="btn-file">Analizar un archivo .txt propio…</button>
       <input type="file" id="file-input" accept=".txt,text/plain" style="display:none">
     </div>
@@ -464,6 +465,7 @@ document.getElementById('btn-en').addEventListener('click', () => {
 });
 document.getElementById('btn-quijote').addEventListener('click', () => cargarCorpus('texts/quijote.txt', 'Don Quijote completo (es, 1605)', 'btn-quijote'));
 document.getElementById('btn-pride').addEventListener('click', () => cargarCorpus('texts/prideprejudice.txt', 'Pride and Prejudice completa (en, 1813)', 'btn-pride'));
+document.getElementById('btn-relato').addEventListener('click', () => cargarCorpus('texts/relato.txt', 'Relato', 'btn-relato'));
 document.getElementById('btn-file').addEventListener('click', () => document.getElementById('file-input').click());
 document.getElementById('file-input').addEventListener('change', e => {
   const f = e.target.files[0];
